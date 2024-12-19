@@ -1,0 +1,26 @@
+from enum import Enum
+
+
+class DailyObligation(Enum):
+    JOB_OBLIGATION = 1
+    SCHOOL_OBLIGATION = 2
+    GYM_OBLIGATION = 3
+    PAPERWORK_OBLIGATION = 4
+    INDEPENDENT_OBLIGATION = 5
+    SOCIAL_OUTINGS_OBLIGATION = 6
+
+
+class FatigueLevel(Enum):
+    VERY_LOW_FATIGUE = 1
+    LOW_FATIGUE = 2
+    MODERATE_FATIGUE = 3
+    HIGH_FATIGUE = 4
+    VERY_HIGH_FATIGUE = 5
+
+
+class StressLevel(Enum):
+    VERY_LOW_STRESS = 1
+    LOW_STRESS = 2
+    MODERATE_STRESS = 3
+    HIGH_STRESS = 4
+    VERY_HIGH_STRESS = 5
