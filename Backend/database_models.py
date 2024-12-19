@@ -61,3 +61,6 @@ class SessionsJTObligationsModel(db.Model):
         db.Integer, db.ForeignKey('gaming_sessions.id'), nullable=False)
     daily_obligations_id = db.Column(
         db.Integer, db.ForeignKey('daily_obligations.id'), nullable=False)
+
+    def __repr__(self):
+        return f"SessionsJTObligations(id = {self.id}, gaming_session_id = {self.gaming_session_id}, daily_obligations_id = {self.daily_obligations_id})"
