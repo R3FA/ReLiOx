@@ -46,13 +46,42 @@ user_patch_args.add_argument('nick_name', type=str, required=False)
 user_patch_args.add_argument('age', type=str, required=False)
 user_patch_args.add_argument('email', type=str, required=False)
 
+# Gaming Session Arguments for POST
+user_gaming_session_args = reqparse.RequestParser()
+user_gaming_session_args.add_argument('user_id', type=int, required=True,
+                                      help="User ID can't be blank.")
+user_gaming_session_args.add_argument('event_date', type=str,
+                                      required=True, help="Event Date can't be blank.")
+user_gaming_session_args.add_argument('start_time', type=str,
+                                      required=True, help="Start Time can't be blank.")
+user_gaming_session_args.add_argument('end_time', type=str,
+                                      required=True, help="End Time can't be blank.")
+user_gaming_session_args.add_argument('session_duration', type=float,
+                                      required=True, help="Session Duration can't be blank.")
+user_gaming_session_args.add_argument('fatigue_level', type=str,
+                                      required=True, help="Fatigue Level can't be blank.")
+user_gaming_session_args.add_argument('stress_level', type=str,
+                                      required=True, help="Stress Level can't be blank.")
+
 
 # Response Types (JSON format)
 
 # User response
-userFields = {
+user_fields = {
     'id': fields.Integer,
     'nick_name': fields.String,
     'age': fields.Integer,
     'email': fields.String
+}
+
+# Gaming Session response
+gaming_session_fields = {
+    'id': fields.Integer,
+    'user_id': fields.Integer,
+    'event_date': fields.String,  # TODO: Format string to DATE only
+    'start_time': fields.String,  # TODO: Format string to TIME only
+    'end_time': fields.String,  # TODO: Format string to TIME only
+    'session_duration': fields.Float,
+    'fatigue_level': fields.String,
+    'stress_level': fields.String
 }

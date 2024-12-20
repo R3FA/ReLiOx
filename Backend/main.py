@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.exc import IntegrityError
-from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, userFields
+from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, user_fields, gaming_session_fields
 from flask_restful import Resource, Api, marshal_with, abort
 
 app = Flask(__name__)
@@ -86,14 +86,14 @@ class SessionsJTObligationsModel(db.Model):
 
 
 class Users(Resource):
-    # GETALL method
-    @marshal_with(userFields)
+    # GetAll
+    @marshal_with(user_fields)
     def get(self):
         users = UserModel.query.all()
         return users
 
-    # POST
-    @marshal_with(userFields)
+    # Post
+    @marshal_with(user_fields)
     def post(self):
         args = user_post_args.parse_args()
         user = UserModel(
@@ -117,16 +117,16 @@ class Users(Resource):
 
 
 class User(Resource):
-    # GETBYID
-    @marshal_with(userFields)
+    # GetById
+    @marshal_with(user_fields)
     def get(self, id):
         user = UserModel.query.filter_by(id=id).first()
         if not user:
             abort(404, message=f"User with ID {id} is not found.")
         return user
 
-    # PATCH
-    @marshal_with(userFields)
+    # Patch
+    @marshal_with(user_fields)
     def patch(self, id):
         args = user_patch_args.parse_args()
         user = UserModel.query.filter_by(id=id).first()
@@ -163,7 +163,7 @@ class User(Resource):
 
         return user, 200
 
-    # DELETE
+    # Delete
     def delete(self, id):
         user = UserModel.query.filter_by(id=id).first()
         if not user:
@@ -172,10 +172,71 @@ class User(Resource):
         db.session.commit()
         return {"message": "User has been successfully deleted"}, 200
 
+# GAMING SESSION Controller
+
+
+class GamingSessions(Resource):
+    # GetAll
+    @marshal_with(gaming_session_fields)
+    def get(self, user_id):
+        user_gaming_sessions = GamingSessionsModel.query.filter_by(
+            user_id=user_id).all()
+        return user_gaming_sessions
+
+    # Post
+    # TODO: Nastavi sutra
+    @marshal_with(user_fields)
+    def post(self, user_id):
+        args = user_gaming_session_args.parse_args()
+        user_gaming_session = GamingSessionsModel(
+            user_id=args["user_id"], event_date=args["event_date"], start_time=args["start_time"], end_time=args[
+                "end_time"], session_duration=args["session_duration"], fatigue_level=args["fatigue_level"], stress_level=args["stress_level"]
+        )
+
+        if user_gaming_session.user_id != user_id:
+            abort(
+                400, message=f"User ID from query variable doesn't match the User ID from BODY.")
+        # try:
+        #     db.session.add(user_gaming_session)
+        #     db.session.commit()
+        # except IntegrityError as e:
+        #     db.session.rollback()
+        #     if "users.nick_name" in str(e.orig):
+        #         abort(
+        #             409, message=f"Nickname already exists. Please choose another one.")
+        #     elif "users.email" in str(e.orig):
+        #         abort(
+        #             409, message=f"Email already exists. Please use another email.")
+        #     else:
+        #         abort(500, message=f"An unexpected database error occurred.")
+
+        # return user, 201
+
+
+class GamingSession(Resource):
+    # GetById
+    @marshal_with(gaming_session_fields)
+    def get(self, id, user_id):
+        user_gaming_session = GamingSessionsModel.query.filter_by(
+            id=id, user_id=user_id).first()
+        if not user_gaming_session:
+            abort(
+                404, message=f"User Gaming Session with ID {id} and User ID {user_id} is not found.")
+        return user_gaming_session
+
 
 # Route registration
+
+
+# User routes
 api.add_resource(Users, '/api/users/')
 api.add_resource(User, '/api/users/<int:id>')
+
+# GamingSession routes
+api.add_resource(
+    GamingSessions, '/api/user-gaming-session/<int:user_id>')
+api.add_resource(
+    GamingSession, '/api/user-gaming-session/<int:id>/<int:user_id>')
 
 if __name__ == "__main__":
     app.run(debug=True)
