@@ -1,5 +1,4 @@
-from main import app
-from database_models import db, DailyObligationsModel
+from main import app, db, DailyObligationsModel
 from models import DailyObligation
 
 
