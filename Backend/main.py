@@ -36,12 +36,17 @@ class GamingSessionsModel(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
-    event_date = db.Column(db.Date, unique=True, nullable=False)
+    event_date = db.Column(db.Date, nullable=False)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     session_duration = db.Column(db.Float, nullable=False)
     fatigue_level = db.Column(db.Enum(FatigueLevel), nullable=False)
     stress_level = db.Column(db.Enum(StressLevel), nullable=False)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'event_date',
+                            name='unique_user_event_date'),
+    )
 
     # Relationship to DailyObligations through the junction table
     daily_obligations = db.relationship(
