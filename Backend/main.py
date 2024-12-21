@@ -122,7 +122,7 @@ class User(Resource):
     def get(self, id):
         user = UserModel.query.filter_by(id=id).first()
         if not user:
-            abort(404, message=f"User with ID {id} is not found.")
+            abort(404, message=f"User with ID({id}) is not found.")
         return user
 
     # Patch
@@ -167,7 +167,7 @@ class User(Resource):
     def delete(self, id):
         user = UserModel.query.filter_by(id=id).first()
         if not user:
-            abort(404, message=f"User with ID {id} is not found.")
+            abort(404, message=f"User with ID({id}) is not found.")
         db.session.delete(user)
         db.session.commit()
         return {"message": "User has been successfully deleted"}, 200
@@ -184,8 +184,7 @@ class GamingSessions(Resource):
         return user_gaming_sessions
 
     # Post
-    # TODO: Nastavi sutra
-    @marshal_with(user_fields)
+    @marshal_with(gaming_session_fields)
     def post(self, user_id):
         args = user_gaming_session_args.parse_args()
         user_gaming_session = GamingSessionsModel(
@@ -195,34 +194,47 @@ class GamingSessions(Resource):
 
         if user_gaming_session.user_id != user_id:
             abort(
-                400, message=f"User ID from query variable doesn't match the User ID from BODY.")
-        # try:
-        #     db.session.add(user_gaming_session)
-        #     db.session.commit()
-        # except IntegrityError as e:
-        #     db.session.rollback()
-        #     if "users.nick_name" in str(e.orig):
-        #         abort(
-        #             409, message=f"Nickname already exists. Please choose another one.")
-        #     elif "users.email" in str(e.orig):
-        #         abort(
-        #             409, message=f"Email already exists. Please use another email.")
-        #     else:
-        #         abort(500, message=f"An unexpected database error occurred.")
+                400, message=f"User ID({user_gaming_session.user_id}) from query variable doesn't match the User ID({user_id}) from BODY.")
 
-        # return user, 201
+        user = UserModel.query.filter_by(id=user_id).first()
+        if not user:
+            abort(
+                404, message=f"User with ID({user_id}) is not found.")
+        try:
+            db.session.add(user_gaming_session)
+            db.session.commit()
+        except IntegrityError as e:
+            db.session.rollback()
+            if "gaming_sessions.event_date" in str(e.orig):
+                abort(
+                    409, message=f"Event Date already exists. Please choose another one.")
+            else:
+                abort(500, message=f"An unexpected database error occurred.")
+
+        return user_gaming_session, 201
 
 
 class GamingSession(Resource):
-    # GetById
     @marshal_with(gaming_session_fields)
+    # GetById
     def get(self, id, user_id):
         user_gaming_session = GamingSessionsModel.query.filter_by(
             id=id, user_id=user_id).first()
         if not user_gaming_session:
             abort(
-                404, message=f"User Gaming Session with ID {id} and User ID {user_id} is not found.")
+                404, message=f"User Gaming Session with ID({id}) and User ID({user_id}) is not found.")
         return user_gaming_session
+
+    # DeleteById
+    def delete(self, id, user_id):
+        user_gaming_session = GamingSessionsModel.query.filter_by(
+            id=id, user_id=user_id).first()
+        if not user_gaming_session:
+            abort(
+                404, message=f"User Gaming Session with ID({id}) and User ID({user_id}) is not found.")
+        db.session.delete(user_gaming_session)
+        db.session.commit()
+        return {"message": "User Gaming Session has been successfully deleted"}, 200
 
 
 # Route registration
