@@ -52,7 +52,8 @@ class GamingSessionsModel(db.Model):
     daily_obligations = db.relationship(
         'DailyObligationsModel',
         secondary='sessions_jt_obligations',
-        backref=db.backref('gaming_sessions', lazy=True)
+        back_populates='gaming_sessions',
+        cascade="save-update, merge"
     )
 
     def __repr__(self):
@@ -66,6 +67,12 @@ class DailyObligationsModel(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     daily_obligation_type = db.Column(db.Enum(DailyObligation), nullable=False)
+
+    gaming_sessions = db.relationship(
+        'GamingSessionsModel',
+        secondary='sessions_jt_obligations',
+        back_populates='daily_obligations'
+    )
 
     def __repr__(self):
         return f"DailyObligations(id = {self.id}, daily_obligation_type{self.daily_obligation_type})"
@@ -197,6 +204,10 @@ class GamingSessions(Resource):
                 "end_time"], session_duration=args["session_duration"], fatigue_level=args["fatigue_level"], stress_level=args["stress_level"]
         )
 
+        obligation_enums = args.get("daily_obligations", [])
+        if not obligation_enums:
+            abort(400, message="Daily Obligation can't be blank and must be provided.")
+
         if user_gaming_session.user_id != user_id:
             abort(
                 400, message=f"User ID({user_gaming_session.user_id}) from query variable doesn't match the User ID({user_id}) from BODY.")
@@ -205,14 +216,27 @@ class GamingSessions(Resource):
         if not user:
             abort(
                 404, message=f"User with ID({user_id}) is not found.")
+
+        daily_obligations = DailyObligationsModel.query.filter(
+            DailyObligationsModel.daily_obligation_type.in_(obligation_enums)).all()
+
         try:
             db.session.add(user_gaming_session)
+            db.session.commit()
+
+            for obligation in daily_obligations:
+                junction_entry = SessionsJTObligationsModel(
+                    gaming_session_id=user_gaming_session.id,
+                    daily_obligations_id=obligation.id
+                )
+                db.session.add(junction_entry)
+
             db.session.commit()
         except IntegrityError as e:
             db.session.rollback()
             if "gaming_sessions.event_date" in str(e.orig):
                 abort(
-                    409, message=f"Event Date already exists. Please choose another one.")
+                    409, message=f"Event Date already exists for the current User with ID({user_id}). Please choose another one.")
             else:
                 abort(500, message=f"An unexpected database error occurred.")
 
@@ -228,9 +252,11 @@ class GamingSession(Resource):
         if not user_gaming_session:
             abort(
                 404, message=f"User Gaming Session with ID({id}) and User ID({user_id}) is not found.")
+
         return user_gaming_session
 
     # DeleteById
+
     def delete(self, id, user_id):
         user_gaming_session = GamingSessionsModel.query.filter_by(
             id=id, user_id=user_id).first()

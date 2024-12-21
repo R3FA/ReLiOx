@@ -78,7 +78,15 @@ def parse_stress_level(stress_level: StressLevel):
         return StressLevel[stress_level]
     except KeyError:
         raise ValueError(
-            f"Invalid fatigue level: '{stress_level}'. Must be one of {[level.name for level in StressLevel]}")
+            f"Invalid stress level: '{stress_level}'. Must be one of {[level.name for level in StressLevel]}")
+
+
+def parse_daily_obligations(daily_obligations: DailyObligation):
+    try:
+        return DailyObligation[daily_obligations]
+    except KeyError:
+        raise ValueError(
+            f"Invalid daily obligation: '{daily_obligations}'. Must be one of {[level.name for level in DailyObligation]}")
 
 
 user_gaming_session_args.add_argument('user_id', type=int, required=True,
@@ -95,6 +103,8 @@ user_gaming_session_args.add_argument('fatigue_level', type=parse_fatigue_level,
                                       required=True, help="Invalid or missing fatigue level.")
 user_gaming_session_args.add_argument('stress_level', type=parse_stress_level,
                                       required=True, help="Invalid or missing stress level.")
+user_gaming_session_args.add_argument('daily_obligations', action='append', type=parse_daily_obligations,
+                                      required=True, help="Invalid or missing daily obligation.")
 
 
 # Response Types (JSON format)
@@ -108,6 +118,11 @@ user_fields = {
 }
 
 # Gaming Session response
+daily_obligation_fields = {
+    'id': fields.Integer,
+    'daily_obligation_type': fields.String
+}
+
 gaming_session_fields = {
     'id': fields.Integer,
     'user_id': fields.Integer,
@@ -116,5 +131,6 @@ gaming_session_fields = {
     'end_time': fields.String,
     'session_duration': fields.Float,
     'fatigue_level': fields.String,
-    'stress_level': fields.String
+    'stress_level': fields.String,
+    'daily_obligations': fields.List(fields.Nested(daily_obligation_fields))
 }
