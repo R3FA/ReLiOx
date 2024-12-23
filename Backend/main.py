@@ -2,8 +2,12 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
-from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, user_fields, gaming_session_fields
+from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, agent_fields
 from flask_restful import Resource, Api, marshal_with, abort
+from datetime import datetime
+from sklearn.linear_model import LinearRegression
+from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reliox_database.db'
@@ -290,10 +294,99 @@ class GamingSession(Resource):
         db.session.commit()
         return {"message": "User Gaming Session has been successfully deleted"}, 200
 
+# AGENT Logic
+
+
+class AgentSession(Resource):
+    @marshal_with(agent_fields)
+    def post(self):
+        model = LinearRegression()
+
+        args = agent_fields_array_args.parse_args()
+        agent_data = args['data']
+
+        if not agent_data:
+            abort(400, message=f"Agent data for prediction is empty.")
+
+        X = []
+        Y = []
+
+        total_fatigue_level = 0
+        total_stress_level = 0
+        total_daily_obligations_count = 0
+        total_obligations_impact = 0
+        total_session_duration = 0
+        session_count = len(agent_data)
+
+        for session in agent_data:
+            start_time = datetime.strptime(
+                session.get("start_time"), "%H:%M:%S").time()
+            end_time = datetime.strptime(
+                session.get("end_time"), "%H:%M:%S").time()
+            fatigue_level = session.get("fatigue_level")
+            stress_level = session.get("stress_level")
+            daily_obligations_count = session.get("daily_obligations_count")
+            daily_obligations = session.get("daily_obligations", [])
+
+            if not all([start_time, end_time, fatigue_level, stress_level, daily_obligations_count, daily_obligations]):
+                abort(400, message=f"Not all agent data for prediction is sent")
+
+            session_duration = (datetime.combine(datetime.today(
+            ), end_time) - datetime.combine(datetime.today(), start_time)).seconds / 3600
+
+            obligations_impact = 0
+            for obligation in daily_obligations:
+                if obligation['daily_obligation_type'] == "JOB_OBLIGATION":
+                    obligations_impact += 5
+                elif obligation['daily_obligation_type'] == "SCHOOL_OBLIGATION":
+                    obligations_impact += 4
+                elif obligation['daily_obligation_type'] == "GYM_OBLIGATION":
+                    obligations_impact += 3
+                elif obligation['daily_obligation_type'] == "PAPERWORK_OBLIGATION":
+                    obligations_impact += 7
+                elif obligation['daily_obligation_type'] == "INDEPENDENT_OBLIGATION":
+                    obligations_impact += 6
+                elif obligation['daily_obligation_type'] == "SOCIAL_OUTINGS_OBLIGATION":
+                    obligations_impact += 3
+
+            X.append([fatigue_level, stress_level, daily_obligations_count,
+                     obligations_impact, session_duration])
+            Y.append(session_duration)
+
+            total_fatigue_level += fatigue_level
+            total_stress_level += stress_level
+            total_daily_obligations_count += daily_obligations_count
+            total_obligations_impact += obligations_impact
+            total_session_duration += session_duration
+
+        avg_fatigue_level = total_fatigue_level / session_count
+        avg_stress_level = total_stress_level / session_count
+        avg_daily_obligations_count = total_daily_obligations_count / session_count
+        avg_obligations_impact = total_obligations_impact / session_count
+        avg_session_duration = total_session_duration / session_count
+
+        input_data = np.array([[avg_fatigue_level, avg_stress_level,
+                              avg_daily_obligations_count, avg_obligations_impact, avg_session_duration]])
+
+        scaler = MinMaxScaler()
+        X_normalized = scaler.fit_transform(X)
+        input_data_normalized = scaler.transform(input_data)
+
+        model.fit(X_normalized, Y)
+        predicted_duration = model.predict(input_data_normalized)
+
+        recommended_duration = min(predicted_duration[0], avg_session_duration)
+
+        result = {
+            "average_session_duration": f"{round(avg_session_duration, 2)} hours",
+            "recommended_session_duration": f"{round(recommended_duration, 2)} hours",
+            "predicted_session_duration": f"{round(predicted_duration[0], 2)} hours"
+        }
+
+        return result, 200
+
 
 # Route registration
-
-
 # User routes
 api.add_resource(Users, '/api/users/')
 api.add_resource(User, '/api/users/<int:id>')
@@ -303,6 +396,9 @@ api.add_resource(
     GamingSessions, '/api/user-gaming-session/<int:user_id>')
 api.add_resource(
     GamingSession, '/api/user-gaming-session/<int:id>/<int:user_id>')
+
+# Agent routes
+api.add_resource(AgentSession, '/api/agent-session/')
 
 if __name__ == "__main__":
     app.run(debug=True)

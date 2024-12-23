@@ -48,7 +48,6 @@ user_patch_args.add_argument('age', type=str, required=False)
 user_patch_args.add_argument('email', type=str, required=False)
 
 # Gaming Session Arguments for POST
-user_gaming_session_args = reqparse.RequestParser()
 
 
 def parse_date(date_string: str):
@@ -89,6 +88,7 @@ def parse_daily_obligations(daily_obligations: DailyObligation):
             f"Invalid daily obligation: '{daily_obligations}'. Must be one of {[level.name for level in DailyObligation]}")
 
 
+user_gaming_session_args = reqparse.RequestParser()
 user_gaming_session_args.add_argument('user_id', type=int, required=True,
                                       help="User ID can't be blank.")
 user_gaming_session_args.add_argument('event_date', type=parse_date,
@@ -106,6 +106,10 @@ user_gaming_session_args.add_argument('stress_level', type=parse_stress_level,
 user_gaming_session_args.add_argument('daily_obligations', action='append', type=parse_daily_obligations,
                                       required=True, help="Invalid or missing daily obligation.")
 
+# Agent Arguments for POST
+agent_fields_array_args = reqparse.RequestParser()
+agent_fields_array_args.add_argument('data', type=list, location='json', required=True,
+                                     help="Data should be a list of agent fields.")
 
 # Response Types (JSON format)
 
@@ -133,4 +137,10 @@ gaming_session_fields = {
     'fatigue_level': fields.String,
     'stress_level': fields.String,
     'daily_obligations': fields.List(fields.Nested(daily_obligation_fields))
+}
+
+agent_fields = {
+    "average_session_duration": fields.String,
+    "recommended_session_duration": fields.String,
+    "predicted_session_duration": fields.String,
 }
