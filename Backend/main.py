@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, user_fields, gaming_session_fields
 from flask_restful import Resource, Api, marshal_with, abort
@@ -42,11 +43,6 @@ class GamingSessionsModel(db.Model):
     session_duration = db.Column(db.Float, nullable=False)
     fatigue_level = db.Column(db.Enum(FatigueLevel), nullable=False)
     stress_level = db.Column(db.Enum(StressLevel), nullable=False)
-
-    __table_args__ = (
-        db.UniqueConstraint('user_id', 'event_date',
-                            name='unique_user_event_date'),
-    )
 
     # Relationship to DailyObligations through the junction table
     daily_obligations = db.relationship(
@@ -187,6 +183,33 @@ class User(Resource):
 # GAMING SESSION Controller
 
 
+def check_gaming_session_overlap(user_id, event_date, new_start_time, new_end_time):
+    overlapping_sessions = GamingSessionsModel.query.filter(
+        GamingSessionsModel.user_id == user_id,
+        GamingSessionsModel.event_date == event_date,
+        or_(
+            and_(
+                GamingSessionsModel.start_time <= new_start_time,
+                GamingSessionsModel.end_time > new_start_time
+            ),
+            and_(
+                GamingSessionsModel.start_time < new_end_time,
+                GamingSessionsModel.end_time >= new_end_time
+            ),
+            and_(
+                GamingSessionsModel.start_time >= new_start_time,
+                GamingSessionsModel.end_time <= new_end_time
+            )
+        )
+    ).all()
+
+    if overlapping_sessions:
+        abort(
+            409,
+            message="The selected time range overlaps with an existing gaming session."
+        )
+
+
 class GamingSessions(Resource):
     # GetAll
     @marshal_with(gaming_session_fields)
@@ -220,6 +243,9 @@ class GamingSessions(Resource):
         daily_obligations = DailyObligationsModel.query.filter(
             DailyObligationsModel.daily_obligation_type.in_(obligation_enums)).all()
 
+        check_gaming_session_overlap(
+            args["user_id"], args["event_date"], args["start_time"], args["end_time"])
+
         try:
             db.session.add(user_gaming_session)
             db.session.commit()
@@ -233,12 +259,9 @@ class GamingSessions(Resource):
 
             db.session.commit()
         except IntegrityError as e:
-            db.session.rollback()
-            if "gaming_sessions.event_date" in str(e.orig):
-                abort(
-                    409, message=f"Event Date already exists for the current User with ID({user_id}). Please choose another one.")
-            else:
-                abort(500, message=f"An unexpected database error occurred.")
+            abort(
+                500, message=f"An unexpected database error occurred: {str(e.orig)}"
+            )
 
         return user_gaming_session, 201
 
