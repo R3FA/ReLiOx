@@ -5,8 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, agent_fields
 from flask_restful import Resource, Api, marshal_with, abort
 from datetime import datetime
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.ensemble import RandomForestRegressor
 import numpy as np
 
 app = Flask(__name__)
@@ -263,6 +262,7 @@ class GamingSessions(Resource):
 
             db.session.commit()
         except IntegrityError as e:
+            db.session.rollback()
             abort(
                 500, message=f"An unexpected database error occurred: {str(e.orig)}"
             )
@@ -300,7 +300,7 @@ class GamingSession(Resource):
 class AgentSession(Resource):
     @marshal_with(agent_fields)
     def post(self):
-        model = LinearRegression()
+        model = RandomForestRegressor(n_estimators=100, random_state=42)
 
         args = agent_fields_array_args.parse_args()
         agent_data = args['data']
@@ -310,13 +310,6 @@ class AgentSession(Resource):
 
         X = []
         Y = []
-
-        total_fatigue_level = 0
-        total_stress_level = 0
-        total_daily_obligations_count = 0
-        total_obligations_impact = 0
-        total_session_duration = 0
-        session_count = len(agent_data)
 
         for session in agent_data:
             start_time = datetime.strptime(
@@ -329,7 +322,7 @@ class AgentSession(Resource):
             daily_obligations = session.get("daily_obligations", [])
 
             if not all([start_time, end_time, fatigue_level, stress_level, daily_obligations_count, daily_obligations]):
-                abort(400, message=f"Not all agent data for prediction is sent")
+                abort(400, message=f"Not all agent data for prediction is sent.")
 
             session_duration = (datetime.combine(datetime.today(
             ), end_time) - datetime.combine(datetime.today(), start_time)).seconds / 3600
@@ -349,38 +342,22 @@ class AgentSession(Resource):
                 elif obligation['daily_obligation_type'] == "SOCIAL_OUTINGS_OBLIGATION":
                     obligations_impact += 3
 
-            X.append([fatigue_level, stress_level, daily_obligations_count,
-                     obligations_impact, session_duration])
+            fatigue_weight = 6
+            stress_weight = 8
+            obligations_weight = 2
+            X.append([fatigue_weight * fatigue_level, stress_weight * stress_level,
+                      obligations_weight * daily_obligations_count, obligations_impact, session_duration])
             Y.append(session_duration)
 
-            total_fatigue_level += fatigue_level
-            total_stress_level += stress_level
-            total_daily_obligations_count += daily_obligations_count
-            total_obligations_impact += obligations_impact
-            total_session_duration += session_duration
+        model.fit(X, Y)
 
-        avg_fatigue_level = total_fatigue_level / session_count
-        avg_stress_level = total_stress_level / session_count
-        avg_daily_obligations_count = total_daily_obligations_count / session_count
-        avg_obligations_impact = total_obligations_impact / session_count
-        avg_session_duration = total_session_duration / session_count
+        input_data = np.array([[fatigue_weight * fatigue_level, stress_weight * stress_level,
+                               obligations_weight * daily_obligations_count, obligations_impact, session_duration]])
 
-        input_data = np.array([[avg_fatigue_level, avg_stress_level,
-                              avg_daily_obligations_count, avg_obligations_impact, avg_session_duration]])
-
-        scaler = MinMaxScaler()
-        X_normalized = scaler.fit_transform(X)
-        input_data_normalized = scaler.transform(input_data)
-
-        model.fit(X_normalized, Y)
-        predicted_duration = model.predict(input_data_normalized)
-
-        recommended_duration = min(predicted_duration[0], avg_session_duration)
+        predicted_duration = model.predict(input_data)
 
         result = {
-            "average_session_duration": f"{round(avg_session_duration, 2)} hours",
-            "recommended_session_duration": f"{round(recommended_duration, 2)} hours",
-            "predicted_session_duration": f"{round(predicted_duration[0], 2)} hours"
+            "predicted_session_duration": f"Gaming session should last for {predicted_duration[0]} hours"
         }
 
         return result, 200

@@ -140,7 +140,5 @@ gaming_session_fields = {
 }
 
 agent_fields = {
-    "average_session_duration": fields.String,
-    "recommended_session_duration": fields.String,
     "predicted_session_duration": fields.String,
 }
