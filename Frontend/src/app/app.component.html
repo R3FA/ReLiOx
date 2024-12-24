@@ -1,0 +1,110 @@
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-md navbar-light pt-3 pb-2">
+  <div class="container-xxl">
+    <a class="navbar-brand" href="#">
+      <span class="text-secondary fw-bold"> {{ navBarTitle }} </span>
+    </a>
+
+    <!-- toggle button for mobile nav -->
+    <button
+      class="navbar-toggler"
+      type="button"
+      data-bs-toggle="collapse"
+      data-bs-target="#nav-bar"
+      aria-controls="nav-bar"
+      aria-expanded="false"
+      aria-label="Toggle navigation"
+    >
+      <span class="navbar-toggler-icon"></span>
+    </button>
+
+    <div
+      class="collapse navbar-collapse justify-content-end align-center"
+      id="nav-bar"
+    >
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" href="#about-me">About Me</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Sidebar -->
+<div
+  class="offcanvas offcanvas-start"
+  tabindex="-1"
+  id="sidebar"
+  aria-labelledby="sidebar-label"
+>
+  <div class="offcanvas-header">
+    <h5 class="offcanvas-title" id="sidebar-label">
+      {{ sideBarUserPanelTitle }}
+    </h5>
+    <button class="btn btn-warning ms-auto">
+      <i class="fas fa-user-plus"></i> Create
+    </button>
+    <button
+      type="button"
+      class="btn-close"
+      data-bs-dismiss="offcanvas"
+      aria-label="Close"
+    ></button>
+  </div>
+
+  <div class="offcanvas-body">
+    <div
+      class="card d-flex flex-column justify-content-center align-items-center"
+      style="width: 100%"
+    >
+      <!-- TODO: Ovo ce se multiply sa dodanim userima -->
+      <div class="card-body">
+        <h5 class="card-title text-center">Lorem.</h5>
+      </div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item text-center">
+          <h6 class="card-title text-center">Email</h6>
+          <p class="list-group-item-text">
+            Lorem ipsum dolor sit amet consectetur adipisicing elit.
+          </p>
+        </li>
+        <li class="list-group-item text-center">
+          <h6 class="card-title text-center">Age</h6>
+          <p class="list-group-item-text">Lorem ipsum dolor sit amet.</p>
+        </li>
+      </ul>
+      <div class="card-body text-center">
+        <a class="btn btn-warning">
+          <i class="fa-solid fa-arrow-up"></i>
+          Choose User</a
+        >
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Body-->
+<section id="main">
+  <button
+    class="d-block- mt-3 navbar-toggler"
+    data-bs-toggle="offcanvas"
+    href="#sidebar"
+    role="button"
+    aria-controls="sidebar"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="32"
+      height="32"
+      fill="currentColor"
+      class="bi bi-arrow-bar-right"
+      viewBox="0 0 16 16"
+    >
+      <path
+        fill-rule="evenodd"
+        d="M6 8a.5.5 0 0 0 .5.5h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L12.293 7.5H6.5A.5.5 0 0 0 6 8m-2.5 7a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 1 0v13a.5.5 0 0 1-.5.5"
+      />
+    </svg>
+  </button>
+</section>
