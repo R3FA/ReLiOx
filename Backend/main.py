@@ -1,5 +1,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
 from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, agent_fields
@@ -12,6 +13,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reliox_database.db'
 db = SQLAlchemy(app)
 api = Api(app)
+CORS(app)
 
 # Database Models
 
@@ -107,6 +109,17 @@ class Users(Resource):
     @marshal_with(user_fields)
     def post(self):
         args = user_post_args.parse_args()
+
+        # Validation
+        if args["age"] <= 0:
+            abort(400, message="Age must be a positive number.")
+
+        if not args["nick_name"] or args["nick_name"].isspace():
+            abort(400, message="Nickname cannot be empty or just whitespace.")
+
+        if not args["email"] or args["email"].isspace():
+            abort(400, message="Email cannot be empty or just whitespace.")
+
         user = UserModel(
             nick_name=args["nick_name"], age=args["age"], email=args["email"]
         )
