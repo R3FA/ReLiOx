@@ -10,5 +10,5 @@ import { CommonModule } from '@angular/common';
 export class AppComponent {
   public navBarTitle: string = 'ReLiOx - Gaming Session Manager';
   public sideBarUserPanelTitle: string = 'User Panel';
-  public ifUserNotChosen: boolean = true;
+  public ifUserNotChosen: boolean = false;
 }

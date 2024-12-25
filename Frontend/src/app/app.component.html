@@ -204,8 +204,16 @@
       <section id="main">
         <div class="container-lg">
           <div class="row">
-            <div class="col-3 pb-5">
-              <div class="col bg-primary p-5">Sesija1</div>
+            <div class="col-3 pb-5" *ngIf="ifUserNotChosen">
+              <div class="col bg-primary p-5">DummySession1</div>
+            </div>
+            <div class="card" style="width: 100%" *ngIf="!ifUserNotChosen">
+              <div class="card-body">
+                <h5 class="card-title">No user has been chosen.</h5>
+                <p class="card-text">
+                  Choose a user so you can access their gaming session.
+                </p>
+              </div>
             </div>
           </div>
         </div>
