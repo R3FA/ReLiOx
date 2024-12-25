@@ -157,6 +157,7 @@
                   type="nickname"
                   class="form-control"
                   id="nickname-form-control-input"
+                  [(ngModel)]="userPostData.userNickname"
                   placeholder="random"
                 />
               </div>
@@ -168,6 +169,7 @@
                   type="email"
                   class="form-control"
                   id="email-form-control-input"
+                  [(ngModel)]="userPostData.userEmail"
                   placeholder="name@example.com"
                 />
               </div>
@@ -179,6 +181,7 @@
                   type="age"
                   class="form-control"
                   id="age-form-control-input"
+                  [(ngModel)]="userPostData.userAge"
                   placeholder="24"
                 />
               </div>
@@ -191,7 +194,11 @@
               >
                 Close
               </button>
-              <button type="button" class="btn btn-warning">
+              <button
+                type="button"
+                class="btn btn-warning"
+                (click)="createUser(userPostData)"
+              >
                 Submit
                 <i class="fa-regular fa-floppy-disk"></i>
               </button>
