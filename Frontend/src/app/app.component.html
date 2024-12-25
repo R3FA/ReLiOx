@@ -31,80 +31,165 @@
   </div>
 </nav>
 
-<!-- Sidebar -->
-<div
-  class="offcanvas offcanvas-start"
-  tabindex="-1"
-  id="sidebar"
-  aria-labelledby="sidebar-label"
+<!-- Sidebar call button -->
+<button
+  class="d-block- mt-3 navbar-toggler"
+  data-bs-toggle="offcanvas"
+  href="#sidebar"
+  role="button"
+  aria-controls="sidebar"
 >
-  <div class="offcanvas-header">
-    <h5 class="offcanvas-title" id="sidebar-label">
-      {{ sideBarUserPanelTitle }}
-    </h5>
-    <button class="btn btn-warning ms-auto">
-      <i class="fas fa-user-plus"></i> Create
-    </button>
-    <button
-      type="button"
-      class="btn-close"
-      data-bs-dismiss="offcanvas"
-      aria-label="Close"
-    ></button>
-  </div>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="32"
+    height="32"
+    fill="currentColor"
+    class="bi bi-arrow-bar-right"
+    viewBox="0 0 16 16"
+  >
+    <path
+      fill-rule="evenodd"
+      d="M6 8a.5.5 0 0 0 .5.5h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L12.293 7.5H6.5A.5.5 0 0 0 6 8m-2.5 7a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 1 0v13a.5.5 0 0 1-.5.5"
+    />
+  </svg>
+</button>
 
-  <div class="offcanvas-body">
-    <div
-      class="card d-flex flex-column justify-content-center align-items-center"
-      style="width: 100%"
-    >
-      <!-- TODO: Ovo ce se multiply sa dodanim userima -->
-      <div class="card-body">
-        <h5 class="card-title text-center">Lorem.</h5>
+<div class="container">
+  <div class="row">
+    <div class="col-2">
+      <!-- Sidebar-->
+      <div
+        class="offcanvas offcanvas-start"
+        tabindex="-1"
+        id="sidebar"
+        aria-labelledby="sidebar-label"
+      >
+        <div class="offcanvas-header">
+          <h5 class="offcanvas-title" id="sidebar-label">
+            {{ sideBarUserPanelTitle }}
+          </h5>
+          <button
+            type="button"
+            class="btn btn-warning ms-auto"
+            data-bs-toggle="modal"
+            data-bs-target="#sidebar-modal"
+          >
+            <i class="fas fa-user-plus"></i>
+          </button>
+          <button
+            type="button"
+            class="btn-close"
+            data-bs-dismiss="offcanvas"
+            aria-label="Close"
+          ></button>
+        </div>
+
+        <div class="offcanvas-body">
+          <div
+            class="card d-flex flex-column justify-content-center align-items-center"
+            style="width: 100%"
+          >
+            <!-- TODO: Ovo ce se multiply sa dodanim userima -->
+            <div class="card-body">
+              <h5 class="card-title text-center">Lorem.</h5>
+            </div>
+            <ul class="list-group list-group-flush">
+              <li class="list-group-item text-center">
+                <h6 class="card-title text-center">Email</h6>
+                <p class="list-group-item-text">
+                  Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                </p>
+              </li>
+              <li class="list-group-item text-center">
+                <h6 class="card-title text-center">Age</h6>
+                <p class="list-group-item-text">Lorem ipsum dolor sit amet.</p>
+              </li>
+            </ul>
+            <div class="card-body text-center">
+              <a class="btn btn-warning">
+                <i class="fa-solid fa-arrow-up"></i>
+                Choose User</a
+              >
+            </div>
+            <!-- Dovdje -->
+          </div>
+        </div>
       </div>
-      <ul class="list-group list-group-flush">
-        <li class="list-group-item text-center">
-          <h6 class="card-title text-center">Email</h6>
-          <p class="list-group-item-text">
-            Lorem ipsum dolor sit amet consectetur adipisicing elit.
-          </p>
-        </li>
-        <li class="list-group-item text-center">
-          <h6 class="card-title text-center">Age</h6>
-          <p class="list-group-item-text">Lorem ipsum dolor sit amet.</p>
-        </li>
-      </ul>
-      <div class="card-body text-center">
-        <a class="btn btn-warning">
-          <i class="fa-solid fa-arrow-up"></i>
-          Choose User</a
-        >
+
+      <!-- Sidebar Modal -->
+      <div
+        id="sidebar-modal"
+        class="modal fade bd-example-modal-lg"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="sidebar-modal-label"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">User Creation</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="nickname-form-control-input" class="form-label"
+                  >Nickname</label
+                >
+                <input
+                  type="nickname"
+                  class="form-control"
+                  id="nickname-form-control-input"
+                  placeholder="random"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="email-form-control-input" class="form-label"
+                  >Email address</label
+                >
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email-form-control-input"
+                  placeholder="name@example.com"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="age-form-control-input" class="form-label"
+                  >Age</label
+                >
+                <input
+                  type="age"
+                  class="form-control"
+                  id="age-form-control-input"
+                  placeholder="24"
+                />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Close
+              </button>
+              <button type="button" class="btn btn-warning">
+                Submit
+                <i class="fa-regular fa-floppy-disk"></i>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
+    </div>
+    <div class="col-10">
+      <section id="main"></section>
     </div>
   </div>
 </div>
-
-<!-- Body-->
-<section id="main">
-  <button
-    class="d-block- mt-3 navbar-toggler"
-    data-bs-toggle="offcanvas"
-    href="#sidebar"
-    role="button"
-    aria-controls="sidebar"
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="32"
-      height="32"
-      fill="currentColor"
-      class="bi bi-arrow-bar-right"
-      viewBox="0 0 16 16"
-    >
-      <path
-        fill-rule="evenodd"
-        d="M6 8a.5.5 0 0 0 .5.5h5.793l-2.147 2.146a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L12.293 7.5H6.5A.5.5 0 0 0 6 8m-2.5 7a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 1 0v13a.5.5 0 0 1-.5.5"
-      />
-    </svg>
-  </button>
-</section>
