@@ -1,12 +1,12 @@
 export class UserPatch {
   public id: number;
-  public username: string;
+  public nickname: string;
   public email: string;
   public age: number;
 
-  constructor(id: number, username: string, email: string, age: number) {
+  constructor(id: number, nickname: string, email: string, age: number) {
     this.id = id;
-    this.username = username;
+    this.nickname = nickname;
     this.email = email;
     this.age = age;
   }

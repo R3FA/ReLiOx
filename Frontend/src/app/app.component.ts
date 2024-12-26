@@ -17,14 +17,21 @@ export class AppComponent implements OnInit {
   // HTML Titles
   public navBarTitle: string = 'ReLiOx - Gaming Session Manager';
   public sideBarUserPanelTitle: string = 'User Panel';
+  public sideBarChooseUserTitle: string = 'Choose';
+  public formNicknameTitle: string = 'Nickname';
+  public formEmailTitle: string = 'Email';
+  public formAgeTitle: string = 'Age';
+  public createGameSessionButtionTitle: string = 'Create Gaming Session';
+  public currentUser: string = '';
 
   // Bool
-  public ifUserNotChosen: boolean = false;
+  public isUserChosen: boolean = false;
 
   // CRUD objects
   public userGetAllData: UserGet[] = [];
   public userPostData: UserPostFlaskFormat = new UserPostFlaskFormat('', '', 0);
   public userPatchData: UserPatch = new UserPatch(0, '', '', 0);
+  public userData: UserGet = new UserGet(0, '', '', 0);
 
   // Response types
   public userDeleteAlertType: 'success' | 'danger' | null = null;
@@ -52,15 +59,28 @@ export class AppComponent implements OnInit {
     this.userCreateAlertMessage = '';
   }
 
-  public sendUserDetails(user: UserGet): UserPatch {
-    return (this.userPatchData = new UserPatch(
-      user.getUserID(),
-      user.getUserNickname(),
-      user.getUserEmail(),
-      user.getUserAge()
-    ));
+  public sendUserDetails(
+    user: UserGet,
+    isForPatch: boolean
+  ): UserPatch | UserGet {
+    if (isForPatch) {
+      return (this.userPatchData = new UserPatch(
+        user.getUserID(),
+        user.getUserNickname(),
+        user.getUserEmail(),
+        user.getUserAge()
+      ));
+    } else {
+      return (this.userData = new UserGet(
+        user.getUserID(),
+        user.getUserNickname(),
+        user.getUserEmail(),
+        user.getUserAge()
+      ));
+    }
   }
 
+  // User endpoints
   public GetAllUsers(): UserGet[] {
     this.userService.GetAll().subscribe({
       next: (users: UserGetFlaskFormat[]) => {
@@ -75,7 +95,7 @@ export class AppComponent implements OnInit {
     return [];
   }
 
-  public createUser(userPostData: UserPostFlaskFormat): void {
+  public CreateUser(userPostData: UserPostFlaskFormat): void {
     this.userService.Create(userPostData).subscribe({
       next: (createdUser: UserPostFlaskFormat) => {
         let newUser = new UserPost(
@@ -95,9 +115,9 @@ export class AppComponent implements OnInit {
     });
   }
 
-  public patchUser(user: UserPatch): void {
+  public PatchUser(user: UserPatch): void {
     let patchedUser = new UserPatchFlaskFormat(
-      user.username,
+      user.nickname,
       user.email,
       user.age
     );
@@ -116,7 +136,7 @@ export class AppComponent implements OnInit {
     });
   }
 
-  public deleteUser(userID: number, username: string): void {
+  public DeleteUser(userID: number, username: string): void {
     this.userService.Delete(userID).subscribe({
       next: () => {
         this.userDeleteAlertType = 'success';
@@ -129,5 +149,11 @@ export class AppComponent implements OnInit {
           error?.error?.message || 'An error occurred!';
       },
     });
+  }
+
+  // User Gaming Sessions Endpoints
+  public ChooseUser(): void {
+    this.currentUser = `User:${this.userData.getUserNickname()}`;
+    this.isUserChosen = true;
   }
 }
