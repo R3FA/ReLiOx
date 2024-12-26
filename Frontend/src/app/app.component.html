@@ -76,6 +76,13 @@
         id="sidebar"
         aria-labelledby="sidebar-label"
       >
+        <div
+          *ngIf="userDeleteAlertType"
+          [class]="'alert alert-' + userDeleteAlertType + ' w-70 mx-auto mt-4'"
+          role="alert"
+        >
+          {{ userDeleteAlertMessage }}
+        </div>
         <div class="offcanvas-header">
           <h5 class="offcanvas-title" id="sidebar-label">
             {{ sideBarUserPanelTitle }}
@@ -93,42 +100,59 @@
             class="btn-close"
             data-bs-dismiss="offcanvas"
             aria-label="Close"
+            (click)="closeButton()"
           ></button>
         </div>
 
         <div class="offcanvas-body">
           <div
-            class="card d-flex flex-column justify-content-center align-items-center"
+            class="card mb-4"
             style="width: 100%"
+            *ngFor="let user of userGetAllData"
           >
-            <!-- TODO: Ovo ce se multiply sa dodanim userima -->
+            <button
+              type="button"
+              class="btn btn-light"
+              data-bs-toggle="modal"
+              data-bs-target="#sidebar-user-edit-modal"
+              (click)="sendUserDetails(user)"
+            >
+              <i class="fa-solid fa-pen"></i>
+            </button>
             <div class="card-body">
-              <h5 class="card-title text-center">Lorem.</h5>
+              <h5 class="card-title text-center">
+                {{ user.getUserNickname() }}
+              </h5>
             </div>
             <ul class="list-group list-group-flush">
               <li class="list-group-item text-center">
                 <h6 class="card-title text-center">Email</h6>
                 <p class="list-group-item-text">
-                  Lorem ipsum dolor sit amet consectetur adipisicing elit.
+                  {{ user.getUserEmail() }}
                 </p>
               </li>
               <li class="list-group-item text-center">
                 <h6 class="card-title text-center">Age</h6>
-                <p class="list-group-item-text">Lorem ipsum dolor sit amet.</p>
+                <p class="list-group-item-text">{{ user.getUserAge() }}</p>
               </li>
             </ul>
-            <div class="card-body text-center">
+            <div class="card-body d-flex justify-content-between">
               <a class="btn btn-warning">
                 <i class="fa-solid fa-arrow-up"></i>
-                Choose User</a
+                Choose</a
               >
+              <a
+                class="btn btn-danger"
+                (click)="deleteUser(user.getUserID(), user.getUserNickname())"
+              >
+                <i class="fa-solid fa-trash-can"></i>
+              </a>
             </div>
-            <!-- Dovdje -->
           </div>
         </div>
       </div>
 
-      <!-- Sidebar Modal -->
+      <!-- Sidebar User Create Modal -->
       <div
         id="sidebar-modal"
         class="modal fade bd-example-modal-lg"
@@ -146,6 +170,7 @@
                 class="btn-close"
                 data-bs-dismiss="modal"
                 aria-label="Close"
+                (click)="closeButton()"
               ></button>
             </div>
             <div class="modal-body">
@@ -157,7 +182,7 @@
                   type="nickname"
                   class="form-control"
                   id="nickname-form-control-input"
-                  [(ngModel)]="userPostData.userNickname"
+                  [(ngModel)]="userPostData.nick_name"
                   placeholder="random"
                 />
               </div>
@@ -169,7 +194,7 @@
                   type="email"
                   class="form-control"
                   id="email-form-control-input"
-                  [(ngModel)]="userPostData.userEmail"
+                  [(ngModel)]="userPostData.email"
                   placeholder="name@example.com"
                 />
               </div>
@@ -181,7 +206,7 @@
                   type="age"
                   class="form-control"
                   id="age-form-control-input"
-                  [(ngModel)]="userPostData.userAge"
+                  [(ngModel)]="userPostData.age"
                   placeholder="24"
                 />
               </div>
@@ -191,6 +216,7 @@
                 type="button"
                 class="btn btn-secondary"
                 data-bs-dismiss="modal"
+                (click)="closeButton()"
               >
                 Close
               </button>
@@ -204,10 +230,109 @@
               </button>
             </div>
           </div>
+          <div
+            *ngIf="userCreateAlertType"
+            [class]="
+              'alert alert-' + userCreateAlertType + ' w-50 mx-auto mt-4'
+            "
+            role="alert"
+          >
+            {{ userCreateAlertMessage }}
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar User Edit Modal -->
+      <div
+        id="sidebar-user-edit-modal"
+        class="modal fade bd-example-modal-lg"
+        tabindex="-1"
+        role="dialog"
+        aria-labelledby="sidebar-user-edit-modal-label"
+        aria-hidden="true"
+      >
+        <div class="modal-dialog modal-lg">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">User Edit</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+                (click)="closeButton()"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="nickname-form-control-input" class="form-label"
+                  >Nickname</label
+                >
+                <input
+                  type="nickname"
+                  class="form-control"
+                  id="nickname-form-control-input"
+                  [(ngModel)]="userPatchData.username"
+                  placeholder="random"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="email-form-control-input" class="form-label"
+                  >Email address</label
+                >
+                <input
+                  type="email"
+                  class="form-control"
+                  id="email-form-control-input"
+                  [(ngModel)]="userPatchData.email"
+                  placeholder="name@example.com"
+                />
+              </div>
+              <div class="mb-3">
+                <label for="age-form-control-input" class="form-label"
+                  >Age</label
+                >
+                <input
+                  type="age"
+                  class="form-control"
+                  id="age-form-control-input"
+                  [(ngModel)]="userPatchData.age"
+                  placeholder="24"
+                />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+                (click)="closeButton()"
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                class="btn btn-warning"
+                (click)="patchUser(userPatchData)"
+              >
+                Submit
+                <i class="fa-regular fa-floppy-disk"></i>
+              </button>
+            </div>
+          </div>
+          <div
+            *ngIf="userCreateAlertType"
+            [class]="
+              'alert alert-' + userCreateAlertType + ' w-50 mx-auto mt-4'
+            "
+            role="alert"
+          >
+            {{ userCreateAlertMessage }}
+          </div>
         </div>
       </div>
     </div>
-    <div class="col-10">
+    <div class="col-8">
       <section id="main">
         <div class="container-lg">
           <div class="row">
@@ -242,6 +367,7 @@
                   class="btn-close"
                   data-bs-dismiss="modal"
                   aria-label="Close"
+                  (click)="closeButton()"
                 ></button>
               </div>
               <div class="modal-body">
@@ -290,6 +416,7 @@
                   type="button"
                   class="btn btn-secondary"
                   data-bs-dismiss="modal"
+                  (click)="closeButton()"
                 >
                   Close
                 </button>

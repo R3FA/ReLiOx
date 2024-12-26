@@ -9,7 +9,7 @@ export class UserPost {
     this.userAge = userAge;
   }
 
-  public getuserNickname(): string {
+  public getUserNickname(): string {
     return this.userNickname;
   }
 
@@ -20,17 +20,9 @@ export class UserPost {
   public getUserAge(): number {
     return this.userAge;
   }
-
-  public toFlaskFormat(): UserPostFlaskFormat {
-    return new UserPostFlaskFormat(
-      this.getuserNickname(),
-      this.getUserEmail(),
-      this.getUserAge()
-    );
-  }
 }
 
-class UserPostFlaskFormat {
+export class UserPostFlaskFormat {
   nick_name: string;
   email: string;
   age: number;

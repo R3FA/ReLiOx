@@ -159,15 +159,30 @@ class User(Resource):
             abort(404, message=f"User with ID {id} is not found.")
 
         has_changes = False
-        if args.get("nick_name") is not None and args["nick_name"] != user.nick_name:
-            user.nick_name = args["nick_name"]
-            has_changes = True
-        if args.get("age") is not None and int(args["age"]) != user.age:
-            user.age = int(args["age"])
-            has_changes = True
-        if args.get("email") is not None and args["email"] != user.email:
-            user.email = args["email"]
-            has_changes = True
+        if args.get("nick_name") is not None:
+            if args["nick_name"] == "":
+                abort(400, message="Nickname cannot be an empty string.")
+            if args["nick_name"] != user.nick_name:
+                user.nick_name = args["nick_name"]
+                has_changes = True
+
+        if args.get("age") is not None:
+            if args["age"] == "":
+                abort(400, message="Age cannot be empty.")
+            try:
+                age = int(args["age"])
+                if age != user.age:
+                    user.age = age
+                    has_changes = True
+            except ValueError:
+                abort(400, message="Age must be a valid integer.")
+
+        if args.get("email") is not None:
+            if args["email"] == "":
+                abort(400, message="Email cannot be an empty string.")
+            if args["email"] != user.email:
+                user.email = args["email"]
+                has_changes = True
 
         if not has_changes:
             return abort(400, message=f"No changes detected. Existing data matches the input.")
