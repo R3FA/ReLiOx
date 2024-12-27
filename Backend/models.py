@@ -52,16 +52,16 @@ user_patch_args.add_argument('email', type=str, required=False)
 
 def parse_date(date_string: str):
     try:
-        return datetime.strptime(date_string, '%d-%m-%Y').date()
+        return datetime.strptime(date_string, '%Y-%m-%d').date()
     except ValueError:
-        raise ValueError("Invalid date format. Expected DD-MM-YYYY")
+        raise ValueError("Invalid date format. Expected YYYY-MM-DD")
 
 
 def parse_time(time_string: str):
     try:
-        return datetime.strptime(time_string, '%H:%M:%S').time()
+        return datetime.strptime(time_string, '%H:%M').time()
     except ValueError:
-        raise ValueError("Invalid time format. Expected HH:MM:SS.")
+        raise ValueError("Invalid time format. Expected HH:MM.")
 
 
 def parse_fatigue_level(fatigue_level: FatigueLevel):
@@ -92,11 +92,11 @@ user_gaming_session_args = reqparse.RequestParser()
 user_gaming_session_args.add_argument('user_id', type=int, required=True,
                                       help="User ID can't be blank.")
 user_gaming_session_args.add_argument('event_date', type=parse_date,
-                                      required=True, help="Event date is required in format DD-MM-YYYY.")
+                                      required=True, help="Event date is required in format YYYY-MM-DD.")
 user_gaming_session_args.add_argument('start_time', type=parse_time,
-                                      required=True, help="Start time is required in format HH:MM:SS.")
+                                      required=True, help="Start time is required in format HH:MM.")
 user_gaming_session_args.add_argument('end_time', type=parse_time,
-                                      required=True, help="End time is required in format HH:MM:SS.")
+                                      required=True, help="End time is required in format HH:MM.")
 user_gaming_session_args.add_argument('session_duration', type=float,
                                       required=True, help="Session Duration can't be blank.")
 user_gaming_session_args.add_argument('fatigue_level', type=parse_fatigue_level,

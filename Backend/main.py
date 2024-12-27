@@ -1,8 +1,9 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
-from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, agent_fields
+from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, daily_obligation_fields, agent_fields
 from flask_restful import Resource, Api, marshal_with, abort
 from datetime import datetime
 from sklearn.ensemble import RandomForestRegressor
@@ -12,6 +13,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reliox_database.db'
 db = SQLAlchemy(app)
 api = Api(app)
+CORS(app)
 
 # Database Models
 
@@ -107,6 +109,17 @@ class Users(Resource):
     @marshal_with(user_fields)
     def post(self):
         args = user_post_args.parse_args()
+
+        # Validation
+        if args["age"] <= 0:
+            abort(400, message="Age must be a positive number.")
+
+        if not args["nick_name"] or args["nick_name"].isspace():
+            abort(400, message="Nickname cannot be empty or just whitespace.")
+
+        if not args["email"] or args["email"].isspace():
+            abort(400, message="Email cannot be empty or just whitespace.")
+
         user = UserModel(
             nick_name=args["nick_name"], age=args["age"], email=args["email"]
         )
@@ -146,15 +159,30 @@ class User(Resource):
             abort(404, message=f"User with ID {id} is not found.")
 
         has_changes = False
-        if args.get("nick_name") is not None and args["nick_name"] != user.nick_name:
-            user.nick_name = args["nick_name"]
-            has_changes = True
-        if args.get("age") is not None and int(args["age"]) != user.age:
-            user.age = int(args["age"])
-            has_changes = True
-        if args.get("email") is not None and args["email"] != user.email:
-            user.email = args["email"]
-            has_changes = True
+        if args.get("nick_name") is not None:
+            if args["nick_name"] == "":
+                abort(400, message="Nickname cannot be an empty string.")
+            if args["nick_name"] != user.nick_name:
+                user.nick_name = args["nick_name"]
+                has_changes = True
+
+        if args.get("age") is not None:
+            if args["age"] == "":
+                abort(400, message="Age cannot be empty.")
+            try:
+                age = int(args["age"])
+                if age != user.age:
+                    user.age = age
+                    has_changes = True
+            except ValueError:
+                abort(400, message="Age must be a valid integer.")
+
+        if args.get("email") is not None:
+            if args["email"] == "":
+                abort(400, message="Email cannot be an empty string.")
+            if args["email"] != user.email:
+                user.email = args["email"]
+                has_changes = True
 
         if not has_changes:
             return abort(400, message=f"No changes detected. Existing data matches the input.")
@@ -214,13 +242,6 @@ def check_gaming_session_overlap(user_id, event_date, new_start_time, new_end_ti
 
 
 class GamingSessions(Resource):
-    # GetAll
-    @marshal_with(gaming_session_fields)
-    def get(self, user_id):
-        user_gaming_sessions = GamingSessionsModel.query.filter_by(
-            user_id=user_id).all()
-        return user_gaming_sessions
-
     # Post
     @marshal_with(gaming_session_fields)
     def post(self, user_id):
@@ -294,7 +315,44 @@ class GamingSession(Resource):
         db.session.commit()
         return {"message": "User Gaming Session has been successfully deleted"}, 200
 
+
+class GamingSessionsByEventDate(Resource):
+    # GetAll
+    @marshal_with(gaming_session_fields)
+    def get(self, event_date, user_id):
+        try:
+            datetime.strptime(event_date, '%Y-%m-%d')
+        except ValueError:
+            return abort(400, message=f'Invalid date format, use YYYY-MM-DD')
+
+        user_gaming_sessions = GamingSessionsModel.query.filter_by(
+            user_id=user_id, event_date=event_date).all()
+
+        return user_gaming_sessions
+
+
+class DailyObligations(Resource):
+    # GetAll
+    @marshal_with(daily_obligation_fields)
+    def get(self):
+        daily_obligations = DailyObligationsModel.query.all()
+        return daily_obligations
+
 # AGENT Logic
+
+
+def get_fatigue_level(fatigue_string):
+    try:
+        return FatigueLevel[fatigue_string].value
+    except KeyError:
+        return abort(404, message=f"Unknown Fatigue Level: {fatigue_string}")
+
+
+def get_stress_level(stress_string):
+    try:
+        return StressLevel[stress_string].value
+    except KeyError:
+        return abort(404, message=f"Unknown Stress Level: {stress_string}")
 
 
 class AgentSession(Resource):
@@ -316,13 +374,16 @@ class AgentSession(Resource):
                 session.get("start_time"), "%H:%M:%S").time()
             end_time = datetime.strptime(
                 session.get("end_time"), "%H:%M:%S").time()
-            fatigue_level = session.get("fatigue_level")
-            stress_level = session.get("stress_level")
+            fatigue_level_string = session.get("fatigue_level")
+            stress_level_string = session.get("stress_level")
             daily_obligations_count = session.get("daily_obligations_count")
             daily_obligations = session.get("daily_obligations", [])
 
-            if not all([start_time, end_time, fatigue_level, stress_level, daily_obligations_count, daily_obligations]):
+            if not all([start_time, end_time, fatigue_level_string, stress_level_string, daily_obligations_count, daily_obligations]):
                 abort(400, message=f"Not all agent data for prediction is sent.")
+
+            fatigue_level = get_fatigue_level(fatigue_level_string)
+            stress_level = get_stress_level(stress_level_string)
 
             session_duration = (datetime.combine(datetime.today(
             ), end_time) - datetime.combine(datetime.today(), start_time)).seconds / 3600
@@ -373,6 +434,12 @@ api.add_resource(
     GamingSessions, '/api/user-gaming-session/<int:user_id>')
 api.add_resource(
     GamingSession, '/api/user-gaming-session/<int:id>/<int:user_id>')
+
+api.add_resource(GamingSessionsByEventDate,
+                 '/api/user-gaming-session/<string:event_date>/<int:user_id>')
+
+# DailyObligation routes
+api.add_resource(DailyObligations, '/api/daily-obligations/')
 
 # Agent routes
 api.add_resource(AgentSession, '/api/agent-session/')
