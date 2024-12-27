@@ -35,6 +35,7 @@
             class="btn btn-danger"
             *ngIf="isUserChosen"
             [disabled]="areSessionsEmpty"
+            (click)="PrepareAgentData()"
           >
             <i class="fa-solid fa-landmark"></i>
             {{ this.navBarAgentButtonTitle }}
@@ -364,8 +365,7 @@
               <div class="card-body">
                 <h5 class="card-title">Agent:</h5>
                 <p class="card-text">
-                  Lorem, ipsum dolor sit amet consectetur adipisicing elit.
-                  Veniam veritatis consequuntur quod quae quaerat harum.
+                  {{ agentMessage }}
                 </p>
               </div>
               <div class="card-body">

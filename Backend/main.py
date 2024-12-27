@@ -242,13 +242,6 @@ def check_gaming_session_overlap(user_id, event_date, new_start_time, new_end_ti
 
 
 class GamingSessions(Resource):
-    # GetAll
-    @marshal_with(gaming_session_fields)
-    def get(self, user_id, event_date):
-        user_gaming_sessions = GamingSessionsModel.query.filter_by(
-            user_id=user_id).all()
-        return user_gaming_sessions
-
     # Post
     @marshal_with(gaming_session_fields)
     def post(self, user_id):
@@ -348,6 +341,20 @@ class DailyObligations(Resource):
 # AGENT Logic
 
 
+def get_fatigue_level(fatigue_string):
+    try:
+        return FatigueLevel[fatigue_string].value
+    except KeyError:
+        return abort(404, message=f"Unknown Fatigue Level: {fatigue_string}")
+
+
+def get_stress_level(stress_string):
+    try:
+        return StressLevel[stress_string].value
+    except KeyError:
+        return abort(404, message=f"Unknown Stress Level: {stress_string}")
+
+
 class AgentSession(Resource):
     @marshal_with(agent_fields)
     def post(self):
@@ -367,13 +374,16 @@ class AgentSession(Resource):
                 session.get("start_time"), "%H:%M:%S").time()
             end_time = datetime.strptime(
                 session.get("end_time"), "%H:%M:%S").time()
-            fatigue_level = session.get("fatigue_level")
-            stress_level = session.get("stress_level")
+            fatigue_level_string = session.get("fatigue_level")
+            stress_level_string = session.get("stress_level")
             daily_obligations_count = session.get("daily_obligations_count")
             daily_obligations = session.get("daily_obligations", [])
 
-            if not all([start_time, end_time, fatigue_level, stress_level, daily_obligations_count, daily_obligations]):
+            if not all([start_time, end_time, fatigue_level_string, stress_level_string, daily_obligations_count, daily_obligations]):
                 abort(400, message=f"Not all agent data for prediction is sent.")
+
+            fatigue_level = get_fatigue_level(fatigue_level_string)
+            stress_level = get_stress_level(stress_level_string)
 
             session_duration = (datetime.combine(datetime.today(
             ), end_time) - datetime.combine(datetime.today(), start_time)).seconds / 3600

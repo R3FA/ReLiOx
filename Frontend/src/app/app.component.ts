@@ -22,6 +22,8 @@ import {
   GamingSessionsDeleteParameters,
   GamingSessionsGetParameters,
 } from './model/GamingSession/GamingSessionGetModel';
+import { Agent, AgentGet, AgentPost } from './model/Agent/AgentPostModel';
+import { AgentService } from './service/agent.service';
 
 @Component({
   selector: 'app-root',
@@ -47,6 +49,7 @@ export class AppComponent implements OnInit {
   public cardSessionFatigueLevel: string = 'Fatigue level';
   public cardSessionStressLevel: string = 'Stress level';
   public cardSessionDailyObligations: string = 'Daily obligations';
+  public agentMessage: string = 'No messages yet';
 
   // Bool
   public isUserChosen: boolean = false;
@@ -70,6 +73,8 @@ export class AppComponent implements OnInit {
   public userGamingSessionDeleteParams: GamingSessionsDeleteParameters =
     new GamingSessionsDeleteParameters(0, 0);
 
+  public agentPostData: Agent[] = [];
+
   // Response types
   public userDeleteAlertType: 'success' | 'danger' | null = null;
   public userDeleteAlertMessage: string = '';
@@ -86,9 +91,13 @@ export class AppComponent implements OnInit {
   public sessionDeleteAlertType: 'success' | 'danger' | null = null;
   public sessionDeleteAlertMessage: string = '';
 
+  public agentPostAlertType: 'success' | 'danger' | null = null;
+  public agentPostAlertMessage: string = '';
+
   constructor(
     private userService: UserService,
-    private userGamingSessionService: UserGamingSessionService
+    private userGamingSessionService: UserGamingSessionService,
+    private agentService: AgentService
   ) {}
 
   private calculateSessionDuration(startTime: string, endTime: string): number {
@@ -337,5 +346,49 @@ export class AppComponent implements OnInit {
             error?.error?.message || 'An error occurred!';
         },
       });
+  }
+
+  // Agent Endpoint
+
+  public PrepareAgentData(): void {
+    let sessionLength: number = this.userGamingSessionsData.length;
+    let session: GamingSessionGet[] = this.userGamingSessionsData;
+
+    for (let i: number = 0; i < sessionLength; i++) {
+      for (let j: number = 0; j < session[i].dailyObligations.length; j++) {
+        session[i].dailyObligations[j].daily_obligation_type = session[
+          i
+        ].dailyObligations[j].daily_obligation_type.replace(
+          'DailyObligation.',
+          ''
+        );
+      }
+
+      this.agentPostData.push(
+        new Agent(
+          session[i].startTime,
+          session[i].endTime,
+          session[i].fatigueLevel,
+          session[i].stressLevel,
+          session[i].dailyObligations.length,
+          session[i].dailyObligations
+        )
+      );
+    }
+
+    this.PredictSessionDuration(new AgentPost(this.agentPostData));
+  }
+
+  public PredictSessionDuration(agentData: AgentPost): void {
+    this.agentService.Create(agentData).subscribe({
+      next: (agentMessage: AgentGet) => {
+        this.agentMessage = agentMessage.predicted_session_duration;
+      },
+      error: (error) => {
+        this.agentPostAlertType = 'danger';
+        this.agentPostAlertMessage =
+          error?.error?.message || 'An error occurred!';
+      },
+    });
   }
 }
