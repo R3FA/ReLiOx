@@ -1,16 +1,27 @@
 import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { UserPost } from './model/Users/UserPostModel';
 import { UserService } from './service/user.service';
 import { FormsModule } from '@angular/forms';
 import { UserGet, UserGetFlaskFormat } from './model/Users/UserGetModel';
 import { UserPostFlaskFormat } from './model/Users/UserPostModel';
 import { UserPatch, UserPatchFlaskFormat } from './model/Users/UserPatchModel';
+import {
+  DailyObligationGet,
+  DailyObligationGetFlaskFormat,
+} from './model/DailyObligation/DailyObligationGetModel';
+import { UserGamingSessionService } from './service/user-gaming-session.service';
+import {
+  FatigueLevel,
+  GamingSessionPostFlaskFormat,
+  StressLevel,
+} from './model/GamingSession/GamingSessionPostModel';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
   styleUrl: './app.component.css',
+  providers: [DatePipe],
   imports: [CommonModule, FormsModule],
 })
 export class AppComponent implements OnInit {
@@ -33,6 +44,12 @@ export class AppComponent implements OnInit {
   public userPatchData: UserPatch = new UserPatch(0, '', '', 0);
   public userData: UserGet = new UserGet(0, '', '', 0);
 
+  public dailyObligationsData: DailyObligationGet[] = [];
+  public fatigueLevels: FatigueLevel[] = Object.values(FatigueLevel);
+  public stressLevels: StressLevel[] = Object.values(StressLevel);
+  public userGamingSessionPostData: GamingSessionPostFlaskFormat =
+    new GamingSessionPostFlaskFormat(0, '', '', '', 0, '', '', []);
+
   // Response types
   public userDeleteAlertType: 'success' | 'danger' | null = null;
   public userDeleteAlertMessage: string = '';
@@ -40,13 +57,36 @@ export class AppComponent implements OnInit {
   public userCreateAlertType: 'success' | 'danger' | null = null;
   public userCreateAlertMessage: string = '';
 
-  constructor(private userService: UserService) {}
+  public sessionCreateAlertType: 'success' | 'danger' | null = null;
+  public sessionCreateAlertMessage: string = '';
+
+  constructor(
+    private userService: UserService,
+    private userGamingSessionService: UserGamingSessionService,
+    private datePipe: DatePipe
+  ) {}
+
+  private calculateSessionDuration(startTime: string, endTime: string): number {
+    const startTimeInMillis = new Date(
+      '1970-01-01T' + startTime + 'Z'
+    ).getTime();
+    const endTimeInMillis = new Date('1970-01-01T' + endTime + 'Z').getTime();
+
+    const durationInMillis = endTimeInMillis - startTimeInMillis;
+
+    const durationInMinutes = durationInMillis / (1000 * 60);
+
+    const hours = Math.floor(durationInMinutes / 60);
+    const minutes = (durationInMinutes % 60).toFixed(2);
+
+    return parseFloat(`${hours}.${minutes}`);
+  }
 
   ngOnInit(): void {
     this.GetAllUsers();
   }
 
-  private refreshPage(): void {
+  public refreshPage(): void {
     setTimeout(() => {
       window.location.reload();
     }, 2000);
@@ -55,8 +95,10 @@ export class AppComponent implements OnInit {
   public closeButton(): void {
     this.userDeleteAlertType = null;
     this.userCreateAlertType = null;
+    this.sessionCreateAlertType = null;
     this.userDeleteAlertMessage = '';
     this.userCreateAlertMessage = '';
+    this.sessionCreateAlertMessage = '';
   }
 
   public sendUserDetails(
@@ -153,7 +195,66 @@ export class AppComponent implements OnInit {
 
   // User Gaming Sessions Endpoints
   public ChooseUser(): void {
-    this.currentUser = `User:${this.userData.getUserNickname()}`;
+    this.currentUser = `User: ${this.userData.getUserNickname()}`;
     this.isUserChosen = true;
+  }
+
+  public loadDailyObligations(): DailyObligationGet[] {
+    this.userGamingSessionService.GetAll().subscribe({
+      next: (sessions: DailyObligationGetFlaskFormat[]) => {
+        this.dailyObligationsData = sessions.map(
+          (session) =>
+            new DailyObligationGet(
+              session.id,
+              session.daily_obligation_type.replace('DailyObligation.', '')
+            )
+        );
+      },
+      error: (error) => {
+        console.error(error?.error?.message);
+      },
+    });
+    return [];
+  }
+
+  public setGamingSessionPostData(): void {
+    this.userGamingSessionPostData.user_id = this.userData.getUserID();
+
+    this.userGamingSessionPostData.session_duration =
+      this.calculateSessionDuration(
+        this.userGamingSessionPostData.start_time,
+        this.userGamingSessionPostData.end_time
+      );
+  }
+
+  public CreateGamingSession(
+    userID: number,
+    session: GamingSessionPostFlaskFormat
+  ): void {
+    this.userGamingSessionService.Create(userID, session).subscribe({
+      next: () => {
+        this.sessionCreateAlertType = 'success';
+        this.sessionCreateAlertMessage = `Gaming session for ${this.currentUser} has been CREATED successfully!`;
+        this.refreshPage();
+      },
+      error: (error) => {
+        this.sessionCreateAlertType = 'danger';
+
+        const errorMessage = error?.error?.message;
+
+        if (errorMessage) {
+          if (typeof errorMessage === 'object') {
+            const firstKey = Object.keys(errorMessage)[0];
+            this.sessionCreateAlertMessage =
+              errorMessage[firstKey] || 'An error occurred!';
+          } else {
+            this.sessionCreateAlertMessage =
+              errorMessage || 'An error occurred!';
+          }
+        } else {
+          this.sessionCreateAlertMessage = 'An error occurred!';
+        }
+      },
+    });
   }
 }

@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import IntegrityError
-from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, agent_fields
+from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, daily_obligation_fields, agent_fields
 from flask_restful import Resource, Api, marshal_with, abort
 from datetime import datetime
 from sklearn.ensemble import RandomForestRegressor
@@ -322,6 +322,14 @@ class GamingSession(Resource):
         db.session.commit()
         return {"message": "User Gaming Session has been successfully deleted"}, 200
 
+
+class DailyObligations(Resource):
+    # GetAll
+    @marshal_with(daily_obligation_fields)
+    def get(self):
+        daily_obligations = DailyObligationsModel.query.all()
+        return daily_obligations
+
 # AGENT Logic
 
 
@@ -401,6 +409,9 @@ api.add_resource(
     GamingSessions, '/api/user-gaming-session/<int:user_id>')
 api.add_resource(
     GamingSession, '/api/user-gaming-session/<int:id>/<int:user_id>')
+
+# DailyObligation routes
+api.add_resource(DailyObligations, '/api/daily-obligations/')
 
 # Agent routes
 api.add_resource(AgentSession, '/api/agent-session/')

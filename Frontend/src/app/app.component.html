@@ -1,7 +1,7 @@
 <!-- Navigation Bar -->
 <nav class="navbar navbar-expand-md navbar-light pt-3 pb-2">
   <div class="container-xxl">
-    <a class="navbar-brand" href="#">
+    <a class="navbar-brand" href="" (click)="this.refreshPage()">
       <span class="text-secondary fw-bold"> {{ navBarTitle }} </span>
     </a>
 
@@ -31,6 +31,7 @@
         </li>
         <li class="nav-item">
           <button
+            (click)="this.loadDailyObligations()"
             type="button"
             class="btn btn-warning"
             data-bs-toggle="modal"
@@ -380,43 +381,63 @@
               </div>
               <div class="modal-body">
                 <div class="form-floating mb-3">
-                  <input type="date" id="date" class="form-control" />
+                  <input
+                    type="date"
+                    id="date"
+                    class="form-control"
+                    [(ngModel)]="this.userGamingSessionPostData.event_date"
+                  />
                   <label for="floatingInput">Event Date</label>
                 </div>
                 <div class="form-floating mb-3">
-                  <input type="time" id="time" class="form-control" />
+                  <input
+                    type="time"
+                    id="time"
+                    class="form-control"
+                    [(ngModel)]="this.userGamingSessionPostData.start_time"
+                  />
                   <label for="floatingPassword">Start Time</label>
                 </div>
                 <div class="form-floating mb-3">
-                  <input type="time" id="time" class="form-control" />
+                  <input
+                    type="time"
+                    id="time"
+                    class="form-control"
+                    [(ngModel)]="this.userGamingSessionPostData.end_time"
+                  />
                   <label for="floatingPassword">End Time</label>
                 </div>
                 <select
                   class="form-select form-select-lg mb-3"
                   aria-label="Large select example"
+                  [(ngModel)]="this.userGamingSessionPostData.fatigue_level"
                 >
-                  <option selected>Open this select menu</option>
-                  <option value="1">One</option>
-                  <option value="2">Two</option>
-                  <option value="3">Three</option>
+                  <option *ngFor="let level of fatigueLevels" [value]="level">
+                    {{ level }}
+                  </option>
                 </select>
                 <select
                   class="form-select form-select-lg mb-3"
                   aria-label="Large select example"
+                  [(ngModel)]="this.userGamingSessionPostData.stress_level"
                 >
-                  <option selected>Open this select menu</option>
-                  <option value="1">One</option>
-                  <option value="2">Two</option>
-                  <option value="3">Three</option>
+                  <option *ngFor="let level of stressLevels" [value]="level">
+                    {{ level }}
+                  </option>
                 </select>
                 <select
                   class="form-select"
                   multiple
                   aria-label="Multiple select example"
+                  [(ngModel)]="this.userGamingSessionPostData.daily_obligations"
                 >
-                  <option value="1">One</option>
-                  <option value="2">Two</option>
-                  <option value="3">Three</option>
+                  <option selected disabled>Choose an obligation</option>
+                  <option
+                    *ngFor="let obligation of this.dailyObligationsData"
+                    [value]="obligation.dailyObligationType"
+                  >
+                    {{ obligation.dailyObligationType }}
+                  </option>
                 </select>
               </div>
               <div class="modal-footer">
@@ -428,12 +449,31 @@
                 >
                   Close
                 </button>
-                <button type="button" class="btn btn-warning">
+                <button
+                  type="button"
+                  class="btn btn-warning"
+                  (click)="
+                    setGamingSessionPostData();
+                    CreateGamingSession(
+                      this.userGamingSessionPostData.user_id,
+                      this.userGamingSessionPostData
+                    )
+                  "
+                >
                   Submit
                   <i class="fa-regular fa-floppy-disk"></i>
                 </button>
               </div>
             </div>
+          </div>
+          <div
+            *ngIf="sessionCreateAlertType"
+            [class]="
+              'alert alert-' + sessionCreateAlertType + ' w-50 mx-auto mt-4'
+            "
+            role="alert"
+          >
+            {{ sessionCreateAlertMessage }}
           </div>
         </div>
       </section>
