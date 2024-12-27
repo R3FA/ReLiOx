@@ -144,7 +144,11 @@
             <div class="card-body d-flex justify-content-between">
               <a
                 class="btn btn-warning"
-                (click)="sendUserDetails(user, false); ChooseUser()"
+                (click)="
+                  sendUserDetails(user, false);
+                  ChooseUser();
+                  GetUsersGamingSessions()
+                "
               >
                 <i class="fa-solid fa-arrow-up"></i>
                 {{ this.sideBarChooseUserTitle }}</a

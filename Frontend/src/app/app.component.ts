@@ -264,6 +264,10 @@ export class AppComponent implements OnInit {
   public GetUsersGamingSessions(): GamingSessionGet[] {
     this.userGamingSessionGetParams.userID = this.userData.getUserID();
 
+    if (this.userGamingSessionGetParams.eventDate == '') {
+      return [];
+    }
+
     this.userGamingSessionService
       .GetAllSessions(this.userGamingSessionGetParams)
       .subscribe({
