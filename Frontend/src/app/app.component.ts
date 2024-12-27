@@ -16,6 +16,12 @@ import {
   GamingSessionPostFlaskFormat,
   StressLevel,
 } from './model/GamingSession/GamingSessionPostModel';
+import {
+  GamingSessionGet,
+  GamingSessionGetFlaskFormat,
+  GamingSessionsDeleteParameters,
+  GamingSessionsGetParameters,
+} from './model/GamingSession/GamingSessionGetModel';
 
 @Component({
   selector: 'app-root',
@@ -27,6 +33,7 @@ import {
 export class AppComponent implements OnInit {
   // HTML Titles
   public navBarTitle: string = 'ReLiOx - Gaming Session Manager';
+  public navBarAgentButtonTitle: string = ' Summon Agent';
   public sideBarUserPanelTitle: string = 'User Panel';
   public sideBarChooseUserTitle: string = 'Choose';
   public formNicknameTitle: string = 'Nickname';
@@ -34,9 +41,16 @@ export class AppComponent implements OnInit {
   public formAgeTitle: string = 'Age';
   public createGameSessionButtionTitle: string = 'Create Gaming Session';
   public currentUser: string = '';
+  public cardSessionEventDate: string = 'Event Date';
+  public cardSessionStartTime: string = 'Start time';
+  public cardSessionEndTime: string = 'End time';
+  public cardSessionFatigueLevel: string = 'Fatigue level';
+  public cardSessionStressLevel: string = 'Stress level';
+  public cardSessionDailyObligations: string = 'Daily obligations';
 
   // Bool
   public isUserChosen: boolean = false;
+  public areSessionsEmpty: boolean = true;
 
   // CRUD objects
   public userGetAllData: UserGet[] = [];
@@ -45,10 +59,16 @@ export class AppComponent implements OnInit {
   public userData: UserGet = new UserGet(0, '', '', 0);
 
   public dailyObligationsData: DailyObligationGet[] = [];
+
   public fatigueLevels: FatigueLevel[] = Object.values(FatigueLevel);
   public stressLevels: StressLevel[] = Object.values(StressLevel);
   public userGamingSessionPostData: GamingSessionPostFlaskFormat =
     new GamingSessionPostFlaskFormat(0, '', '', '', 0, '', '', []);
+  public userGamingSessionGetParams: GamingSessionsGetParameters =
+    new GamingSessionsGetParameters('', 0);
+  public userGamingSessionsData: GamingSessionGet[] = [];
+  public userGamingSessionDeleteParams: GamingSessionsDeleteParameters =
+    new GamingSessionsDeleteParameters(0, 0);
 
   // Response types
   public userDeleteAlertType: 'success' | 'danger' | null = null;
@@ -60,10 +80,15 @@ export class AppComponent implements OnInit {
   public sessionCreateAlertType: 'success' | 'danger' | null = null;
   public sessionCreateAlertMessage: string = '';
 
+  public sessionGetAlertType: 'success' | 'danger' | null = null;
+  public sessionGetAlertMessage: string = '';
+
+  public sessionDeleteAlertType: 'success' | 'danger' | null = null;
+  public sessionDeleteAlertMessage: string = '';
+
   constructor(
     private userService: UserService,
-    private userGamingSessionService: UserGamingSessionService,
-    private datePipe: DatePipe
+    private userGamingSessionService: UserGamingSessionService
   ) {}
 
   private calculateSessionDuration(startTime: string, endTime: string): number {
@@ -227,6 +252,42 @@ export class AppComponent implements OnInit {
       );
   }
 
+  public GetUsersGamingSessions(): GamingSessionGet[] {
+    this.userGamingSessionGetParams.userID = this.userData.getUserID();
+
+    this.userGamingSessionService
+      .GetAllSessions(this.userGamingSessionGetParams)
+      .subscribe({
+        next: (sessions: GamingSessionGetFlaskFormat[]) => {
+          this.userGamingSessionsData = sessions.map(
+            (session) =>
+              new GamingSessionGet(
+                session.id,
+                session.user_id,
+                session.event_date,
+                session.start_time,
+                session.end_time,
+                session.session_duration,
+                session.fatigue_level.replace('FatigueLevel.', ''),
+                session.stress_level.replace('StressLevel.', ''),
+                session.daily_obligations
+              )
+          );
+        },
+        error: (error) => {
+          this.userCreateAlertType = 'danger';
+          this.userCreateAlertMessage =
+            error?.error?.message || 'An error occurred!';
+        },
+        complete: () => {
+          if (this.userGamingSessionsData.length == 0)
+            this.areSessionsEmpty = true;
+          else this.areSessionsEmpty = false;
+        },
+      });
+    return [];
+  }
+
   public CreateGamingSession(
     userID: number,
     session: GamingSessionPostFlaskFormat
@@ -256,5 +317,25 @@ export class AppComponent implements OnInit {
         }
       },
     });
+  }
+
+  public DeleteUserGamingSession(session: GamingSessionGet): void {
+    this.userGamingSessionDeleteParams.setSessionID(session.id);
+    this.userGamingSessionDeleteParams.setUserID(session.userID);
+
+    this.userGamingSessionService
+      .Delete(this.userGamingSessionDeleteParams)
+      .subscribe({
+        next: () => {
+          this.sessionDeleteAlertType = 'success';
+          this.sessionDeleteAlertMessage = `Gaming Session for ${this.currentUser} has been deleted successfully!`;
+          this.refreshPage();
+        },
+        error: (error) => {
+          this.sessionDeleteAlertType = 'danger';
+          this.sessionDeleteAlertMessage =
+            error?.error?.message || 'An error occurred!';
+        },
+      });
   }
 }

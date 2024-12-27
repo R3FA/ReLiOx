@@ -5,19 +5,6 @@
       <span class="text-secondary fw-bold"> {{ navBarTitle }} </span>
     </a>
 
-    <!-- toggle button for mobile nav -->
-    <button
-      class="navbar-toggler"
-      type="button"
-      data-bs-toggle="collapse"
-      data-bs-target="#nav-bar"
-      aria-controls="nav-bar"
-      aria-expanded="false"
-      aria-label="Toggle navigation"
-    >
-      <span class="navbar-toggler-icon"></span>
-    </button>
-
     <div
       class="collapse navbar-collapse justify-content-end align-center"
       id="nav-bar"
@@ -29,7 +16,7 @@
             {{ this.currentUser }}
           </button>
         </li>
-        <li class="nav-item">
+        <li class="nav-item me-3">
           <button
             (click)="this.loadDailyObligations()"
             type="button"
@@ -39,7 +26,18 @@
             *ngIf="isUserChosen"
           >
             {{ this.createGameSessionButtionTitle }}
-            <i class="fa-regular fa-floppy-disk"></i>
+            <i class="fa-solid fa-floppy-disk"></i>
+          </button>
+        </li>
+        <li class="nav-item">
+          <button
+            type="button"
+            class="btn btn-danger"
+            *ngIf="isUserChosen"
+            [disabled]="areSessionsEmpty"
+          >
+            <i class="fa-solid fa-landmark"></i>
+            {{ this.navBarAgentButtonTitle }}
           </button>
         </li>
       </ul>
@@ -343,17 +341,151 @@
     </div>
     <div class="col-8">
       <section id="main">
+        <div
+          *ngIf="sessionDeleteAlertType"
+          [class]="
+            'alert alert-' + sessionDeleteAlertType + ' w-50 mx-auto mt-4'
+          "
+          role="alert"
+        >
+          {{ sessionDeleteAlertMessage }}
+        </div>
         <div class="container-lg">
           <div class="row">
-            <div class="col-3 pb-5" *ngIf="isUserChosen">
-              <div class="col bg-primary p-5">DummySession1</div>
-            </div>
             <div class="card" style="width: 100%" *ngIf="!isUserChosen">
               <div class="card-body">
                 <h5 class="card-title">No user has been chosen.</h5>
                 <p class="card-text">
                   Choose a user so you can access their gaming session.
                 </p>
+              </div>
+            </div>
+            <div class="card" style="width: 100%" *ngIf="isUserChosen">
+              <div class="card-body">
+                <h5 class="card-title">Agent:</h5>
+                <p class="card-text">
+                  Lorem, ipsum dolor sit amet consectetur adipisicing elit.
+                  Veniam veritatis consequuntur quod quae quaerat harum.
+                </p>
+              </div>
+              <div class="card-body">
+                <h5 class="card-title">Filter by date:</h5>
+                <div class="container">
+                  <div class="row">
+                    <div class="col-10">
+                      <input
+                        type="date"
+                        id="date"
+                        class="form-control"
+                        [(ngModel)]="this.userGamingSessionGetParams.eventDate"
+                        required
+                        #eventDate="ngModel"
+                      />
+                      <div
+                        *ngIf="
+                          !this.userGamingSessionGetParams.eventDate ||
+                          !this.userGamingSessionGetParams.eventDate.trim()
+                        "
+                        class="text-danger"
+                      >
+                        Date is required.
+                      </div>
+                    </div>
+
+                    <div class="col-2">
+                      <button
+                        [disabled]="
+                          !this.userGamingSessionGetParams.eventDate ||
+                          !this.userGamingSessionGetParams.eventDate.trim()
+                        "
+                        type="button"
+                        class="btn btn-warning"
+                        (click)="GetUsersGamingSessions()"
+                      >
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 mt-4 mb-5" *ngIf="isUserChosen">
+              <div class="card-body" *ngIf="areSessionsEmpty">
+                <h5 class="card-title">
+                  No gaming sessions found for the selected user and date.
+                </h5>
+              </div>
+              <div
+                class="card mb-4"
+                style="width: 100%"
+                *ngFor="let session of this.userGamingSessionsData"
+              >
+                <a
+                  class="btn btn-danger"
+                  (click)="DeleteUserGamingSession(session)"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </a>
+                <div class="card-body">
+                  <h6 class="card-title text-center">
+                    {{ this.cardSessionEventDate }}
+                  </h6>
+                  <h5 class="card-title text-center">
+                    {{ session.eventDate }}
+                  </h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item text-center">
+                    <h6 class="card-title text-center">
+                      {{ this.cardSessionStartTime }}
+                    </h6>
+                    <p class="list-group-item-text">{{ session.startTime }}</p>
+                  </li>
+                  <li class="list-group-item text-center">
+                    <h6 class="card-title text-center">
+                      {{ this.cardSessionEndTime }}
+                    </h6>
+                    <p class="list-group-item-text">{{ session.endTime }}</p>
+                  </li>
+                  <li class="list-group-item text-center">
+                    <h6 class="card-title text-center">
+                      {{ this.cardSessionFatigueLevel }}
+                    </h6>
+                    <p class="list-group-item-text">
+                      {{ session.fatigueLevel }}
+                    </p>
+                  </li>
+                  <li class="list-group-item text-center">
+                    <h6 class="card-title text-center">
+                      {{ this.cardSessionStressLevel }}
+                    </h6>
+                    <p class="list-group-item-text">
+                      {{ session.stressLevel }}
+                    </p>
+                  </li>
+                  <li class="list-group-item text-center">
+                    <h6 class="card-title text-center">
+                      {{ this.cardSessionDailyObligations }}
+                    </h6>
+                    <div class="container">
+                      <div class="row">
+                        <div
+                          class="col-12 mx-auto"
+                          *ngFor="let obligation of session.dailyObligations"
+                        >
+                          <button type="button" class="btn btn-warning mb-4">
+                            {{
+                              obligation.daily_obligation_type.replace(
+                                "DailyObligation.",
+                                ""
+                              )
+                            }}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>

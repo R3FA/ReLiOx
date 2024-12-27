@@ -244,7 +244,7 @@ def check_gaming_session_overlap(user_id, event_date, new_start_time, new_end_ti
 class GamingSessions(Resource):
     # GetAll
     @marshal_with(gaming_session_fields)
-    def get(self, user_id):
+    def get(self, user_id, event_date):
         user_gaming_sessions = GamingSessionsModel.query.filter_by(
             user_id=user_id).all()
         return user_gaming_sessions
@@ -321,6 +321,21 @@ class GamingSession(Resource):
         db.session.delete(user_gaming_session)
         db.session.commit()
         return {"message": "User Gaming Session has been successfully deleted"}, 200
+
+
+class GamingSessionsByEventDate(Resource):
+    # GetAll
+    @marshal_with(gaming_session_fields)
+    def get(self, event_date, user_id):
+        try:
+            datetime.strptime(event_date, '%Y-%m-%d')
+        except ValueError:
+            return abort(400, message=f'Invalid date format, use YYYY-MM-DD')
+
+        user_gaming_sessions = GamingSessionsModel.query.filter_by(
+            user_id=user_id, event_date=event_date).all()
+
+        return user_gaming_sessions
 
 
 class DailyObligations(Resource):
@@ -409,6 +424,9 @@ api.add_resource(
     GamingSessions, '/api/user-gaming-session/<int:user_id>')
 api.add_resource(
     GamingSession, '/api/user-gaming-session/<int:id>/<int:user_id>')
+
+api.add_resource(GamingSessionsByEventDate,
+                 '/api/user-gaming-session/<string:event_date>/<int:user_id>')
 
 # DailyObligation routes
 api.add_resource(DailyObligations, '/api/daily-obligations/')
