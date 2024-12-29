@@ -22,7 +22,7 @@ import {
   GamingSessionsDeleteParameters,
   GamingSessionsGetParameters,
 } from './model/GamingSession/GamingSessionGetModel';
-import { Agent, AgentGet, AgentPost } from './model/Agent/AgentPostModel';
+import { Agent, AgentGet } from './model/Agent/AgentPostModel';
 import { AgentService } from './service/agent.service';
 
 @Component({
@@ -66,14 +66,12 @@ export class AppComponent implements OnInit {
   public fatigueLevels: FatigueLevel[] = Object.values(FatigueLevel);
   public stressLevels: StressLevel[] = Object.values(StressLevel);
   public userGamingSessionPostData: GamingSessionPostFlaskFormat =
-    new GamingSessionPostFlaskFormat(0, '', '', '', 0, '', '', []);
+    new GamingSessionPostFlaskFormat(0, '', '', '', []);
   public userGamingSessionGetParams: GamingSessionsGetParameters =
     new GamingSessionsGetParameters('', 0);
   public userGamingSessionsData: GamingSessionGet[] = [];
   public userGamingSessionDeleteParams: GamingSessionsDeleteParameters =
     new GamingSessionsDeleteParameters(0, 0);
-
-  public agentPostData: Agent[] = [];
 
   // Response types
   public userDeleteAlertType: 'success' | 'danger' | null = null;
@@ -99,22 +97,6 @@ export class AppComponent implements OnInit {
     private userGamingSessionService: UserGamingSessionService,
     private agentService: AgentService
   ) {}
-
-  private calculateSessionDuration(startTime: string, endTime: string): number {
-    const startTimeInMillis = new Date(
-      '1970-01-01T' + startTime + 'Z'
-    ).getTime();
-    const endTimeInMillis = new Date('1970-01-01T' + endTime + 'Z').getTime();
-
-    const durationInMillis = endTimeInMillis - startTimeInMillis;
-
-    const durationInMinutes = durationInMillis / (1000 * 60);
-
-    const hours = Math.floor(durationInMinutes / 60);
-    const minutes = (durationInMinutes % 60).toFixed(2);
-
-    return parseFloat(`${hours}.${minutes}`);
-  }
 
   ngOnInit(): void {
     this.GetAllUsers();
@@ -253,12 +235,6 @@ export class AppComponent implements OnInit {
 
   public setGamingSessionPostData(): void {
     this.userGamingSessionPostData.user_id = this.userData.getUserID();
-
-    this.userGamingSessionPostData.session_duration =
-      this.calculateSessionDuration(
-        this.userGamingSessionPostData.start_time,
-        this.userGamingSessionPostData.end_time
-      );
   }
 
   public GetUsersGamingSessions(): GamingSessionGet[] {
@@ -278,9 +254,6 @@ export class AppComponent implements OnInit {
                 session.id,
                 session.user_id,
                 session.event_date,
-                session.start_time,
-                session.end_time,
-                session.session_duration,
                 session.fatigue_level.replace('FatigueLevel.', ''),
                 session.stress_level.replace('StressLevel.', ''),
                 session.daily_obligations
@@ -354,37 +327,21 @@ export class AppComponent implements OnInit {
 
   // Agent Endpoint
 
-  public PrepareAgentData(): void {
-    let sessionLength: number = this.userGamingSessionsData.length;
-    let session: GamingSessionGet[] = this.userGamingSessionsData;
+  public PrepareAgentData(session: GamingSessionGet): void {
+    let agentPostData = new Agent(
+      session.fatigueLevel,
+      session.stressLevel,
+      session.dailyObligations.map((obligation) =>
+        obligation.daily_obligation_type.replace('DailyObligation.', '')
+      )
+    );
 
-    for (let i: number = 0; i < sessionLength; i++) {
-      for (let j: number = 0; j < session[i].dailyObligations.length; j++) {
-        session[i].dailyObligations[j].daily_obligation_type = session[
-          i
-        ].dailyObligations[j].daily_obligation_type.replace(
-          'DailyObligation.',
-          ''
-        );
-      }
-
-      this.agentPostData.push(
-        new Agent(
-          session[i].startTime,
-          session[i].endTime,
-          session[i].fatigueLevel,
-          session[i].stressLevel,
-          session[i].dailyObligations.length,
-          session[i].dailyObligations
-        )
-      );
-    }
-
-    this.PredictSessionDuration(new AgentPost(this.agentPostData));
+    console.log(agentPostData);
+    this.PredictSessionDuration(agentPostData);
   }
 
-  public PredictSessionDuration(agentData: AgentPost): void {
-    this.agentService.Create(agentData).subscribe({
+  public PredictSessionDuration(agentPostData: Agent): void {
+    this.agentService.Create(agentPostData).subscribe({
       next: (agentMessage: AgentGet) => {
         this.agentMessage = agentMessage.predicted_session_duration;
       },

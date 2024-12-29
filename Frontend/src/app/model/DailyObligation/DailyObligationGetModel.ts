@@ -17,11 +17,3 @@ export class DailyObligationGetFlaskFormat {
     this.daily_obligation_type = daily_obligation_type;
   }
 }
-
-export class AgentDailyObligationFlaskFormat {
-  daily_obligation_type: string;
-
-  constructor(daily_obligation_type: string) {
-    this.daily_obligation_type = daily_obligation_type;
-  }
-}

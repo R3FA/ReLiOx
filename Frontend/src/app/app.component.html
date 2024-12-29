@@ -29,18 +29,6 @@
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
         </li>
-        <li class="nav-item">
-          <button
-            type="button"
-            class="btn btn-danger"
-            *ngIf="isUserChosen"
-            [disabled]="areSessionsEmpty"
-            (click)="PrepareAgentData()"
-          >
-            <i class="fa-solid fa-landmark"></i>
-            {{ this.navBarAgentButtonTitle }}
-          </button>
-        </li>
       </ul>
     </div>
   </div>
@@ -424,12 +412,16 @@
                 style="width: 100%"
                 *ngFor="let session of this.userGamingSessionsData"
               >
-                <a
-                  class="btn btn-danger"
-                  (click)="DeleteUserGamingSession(session)"
+                <button
+                  type="button"
+                  class="btn btn-info"
+                  *ngIf="isUserChosen"
+                  [disabled]="areSessionsEmpty"
+                  (click)="PrepareAgentData(session)"
                 >
-                  <i class="fa-solid fa-trash-can"></i>
-                </a>
+                  <i class="fa-solid fa-landmark"></i>
+                  {{ this.navBarAgentButtonTitle }}
+                </button>
                 <div class="card-body">
                   <h6 class="card-title text-center">
                     {{ this.cardSessionEventDate }}
@@ -439,18 +431,6 @@
                   </h5>
                 </div>
                 <ul class="list-group list-group-flush">
-                  <li class="list-group-item text-center">
-                    <h6 class="card-title text-center">
-                      {{ this.cardSessionStartTime }}
-                    </h6>
-                    <p class="list-group-item-text">{{ session.startTime }}</p>
-                  </li>
-                  <li class="list-group-item text-center">
-                    <h6 class="card-title text-center">
-                      {{ this.cardSessionEndTime }}
-                    </h6>
-                    <p class="list-group-item-text">{{ session.endTime }}</p>
-                  </li>
                   <li class="list-group-item text-center">
                     <h6 class="card-title text-center">
                       {{ this.cardSessionFatigueLevel }}
@@ -490,6 +470,12 @@
                     </div>
                   </li>
                 </ul>
+                <a
+                  class="btn btn-danger"
+                  (click)="DeleteUserGamingSession(session)"
+                >
+                  <i class="fa-solid fa-trash-can"></i>
+                </a>
               </div>
             </div>
           </div>
@@ -524,24 +510,6 @@
                     [(ngModel)]="this.userGamingSessionPostData.event_date"
                   />
                   <label for="floatingInput">Event Date</label>
-                </div>
-                <div class="form-floating mb-3">
-                  <input
-                    type="time"
-                    id="time"
-                    class="form-control"
-                    [(ngModel)]="this.userGamingSessionPostData.start_time"
-                  />
-                  <label for="floatingPassword">Start Time</label>
-                </div>
-                <div class="form-floating mb-3">
-                  <input
-                    type="time"
-                    id="time"
-                    class="form-control"
-                    [(ngModel)]="this.userGamingSessionPostData.end_time"
-                  />
-                  <label for="floatingPassword">End Time</label>
                 </div>
                 <select
                   class="form-select form-select-lg mb-3"

@@ -6,16 +6,37 @@ from sqlalchemy.exc import IntegrityError
 from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, daily_obligation_fields, agent_fields
 from flask_restful import Resource, Api, marshal_with, abort
 from datetime import datetime
-from sklearn.ensemble import RandomForestRegressor
-import numpy as np
+from sklearn.neural_network import MLPRegressor
+import pickle
+import math
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reliox_database.db'
 db = SQLAlchemy(app)
 api = Api(app)
 CORS(app)
+loaded_model: MLPRegressor
 
 # Database Models
+
+# Agent Trained Database Table
+
+
+class AgentTrainedDataModel(db.Model):
+    __tablename__ = 'agent_trained_data'
+
+    id = db.Column(db.Integer, primary_key=True)
+    fatigue_impact = db.Column(db.Integer, nullable=False)
+    stress_impact = db.Column(db.Integer, nullable=False)
+    daily_obligations = db.Column(db.Integer, nullable=False)
+    session_duration = db.Column(db.Integer, nullable=False)
+
+    def __init__(self, fatigue: int, stress: int, daily_obligations: int, session_duration: int):
+        self.fatigue_impact = fatigue
+        self.stress_impact = stress
+        self.daily_obligations = daily_obligations
+        self.session_duration = session_duration
+
 
 # User DB Model
 
@@ -43,9 +64,6 @@ class GamingSessionsModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     event_date = db.Column(db.Date, nullable=False)
-    start_time = db.Column(db.Time, nullable=False)
-    end_time = db.Column(db.Time, nullable=False)
-    session_duration = db.Column(db.Float, nullable=False)
     fatigue_level = db.Column(db.Enum(FatigueLevel), nullable=False)
     stress_level = db.Column(db.Enum(StressLevel), nullable=False)
 
@@ -68,6 +86,9 @@ class DailyObligationsModel(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     daily_obligation_type = db.Column(db.Enum(DailyObligation), nullable=False)
+
+    def __init__(self, daily_obligation_type: str):
+        self.daily_obligation_type = daily_obligation_type
 
     gaming_sessions = db.relationship(
         'GamingSessionsModel',
@@ -214,41 +235,13 @@ class User(Resource):
 # GAMING SESSION Controller
 
 
-def check_gaming_session_overlap(user_id, event_date, new_start_time, new_end_time):
-    overlapping_sessions = GamingSessionsModel.query.filter(
-        GamingSessionsModel.user_id == user_id,
-        GamingSessionsModel.event_date == event_date,
-        or_(
-            and_(
-                GamingSessionsModel.start_time <= new_start_time,
-                GamingSessionsModel.end_time > new_start_time
-            ),
-            and_(
-                GamingSessionsModel.start_time < new_end_time,
-                GamingSessionsModel.end_time >= new_end_time
-            ),
-            and_(
-                GamingSessionsModel.start_time >= new_start_time,
-                GamingSessionsModel.end_time <= new_end_time
-            )
-        )
-    ).all()
-
-    if overlapping_sessions:
-        abort(
-            409,
-            message="The selected time range overlaps with an existing gaming session."
-        )
-
-
 class GamingSessions(Resource):
     # Post
     @marshal_with(gaming_session_fields)
     def post(self, user_id):
         args = user_gaming_session_args.parse_args()
         user_gaming_session = GamingSessionsModel(
-            user_id=args["user_id"], event_date=args["event_date"], start_time=args["start_time"], end_time=args[
-                "end_time"], session_duration=args["session_duration"], fatigue_level=args["fatigue_level"], stress_level=args["stress_level"]
+            user_id=args["user_id"], event_date=args["event_date"], fatigue_level=args["fatigue_level"], stress_level=args["stress_level"]
         )
 
         obligation_enums = args.get("daily_obligations", [])
@@ -266,9 +259,6 @@ class GamingSessions(Resource):
 
         daily_obligations = DailyObligationsModel.query.filter(
             DailyObligationsModel.daily_obligation_type.in_(obligation_enums)).all()
-
-        check_gaming_session_overlap(
-            args["user_id"], args["event_date"], args["start_time"], args["end_time"])
 
         try:
             db.session.add(user_gaming_session)
@@ -355,73 +345,37 @@ def get_stress_level(stress_string):
         return abort(404, message=f"Unknown Stress Level: {stress_string}")
 
 
+def get_daily_obligation(daily_obligation: DailyObligation):
+    try:
+        return DailyObligation[daily_obligation]
+    except KeyError:
+        raise ValueError(
+            f"Invalid daily obligation: '{daily_obligation}'. Must be one of {[level.name for level in DailyObligation]}")
+
+
 class AgentSession(Resource):
     @marshal_with(agent_fields)
     def post(self):
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
-
         args = agent_fields_array_args.parse_args()
-        agent_data = args['data']
 
-        if not agent_data:
-            abort(400, message=f"Agent data for prediction is empty.")
+        fatigue_level = FatigueLevel(args['fatigue_level']).value
+        stress_level = StressLevel(args['stress_level']).value
+        sum_of_obligations = 0
 
-        X = []
-        Y = []
+        for obligation in args['daily_obligations']:
+            sum_of_obligations += DailyObligation(obligation).value
 
-        for session in agent_data:
-            start_time = datetime.strptime(
-                session.get("start_time"), "%H:%M:%S").time()
-            end_time = datetime.strptime(
-                session.get("end_time"), "%H:%M:%S").time()
-            fatigue_level_string = session.get("fatigue_level")
-            stress_level_string = session.get("stress_level")
-            daily_obligations_count = session.get("daily_obligations_count")
-            daily_obligations = session.get("daily_obligations", [])
+        predicted_duration = loaded_model.predict([[
+            fatigue_level, stress_level, sum_of_obligations]])
 
-            if not all([start_time, end_time, fatigue_level_string, stress_level_string, daily_obligations_count, daily_obligations]):
-                abort(400, message=f"Not all agent data for prediction is sent.")
+        hours = math.floor(predicted_duration[0] / 60)
+        remaining_minutes = round(predicted_duration[0] % 60)
 
-            fatigue_level = get_fatigue_level(fatigue_level_string)
-            stress_level = get_stress_level(stress_level_string)
-
-            session_duration = (datetime.combine(datetime.today(
-            ), end_time) - datetime.combine(datetime.today(), start_time)).seconds / 3600
-
-            obligations_impact = 0
-            for obligation in daily_obligations:
-                if obligation['daily_obligation_type'] == "JOB_OBLIGATION":
-                    obligations_impact += 5
-                elif obligation['daily_obligation_type'] == "SCHOOL_OBLIGATION":
-                    obligations_impact += 4
-                elif obligation['daily_obligation_type'] == "GYM_OBLIGATION":
-                    obligations_impact += 3
-                elif obligation['daily_obligation_type'] == "PAPERWORK_OBLIGATION":
-                    obligations_impact += 7
-                elif obligation['daily_obligation_type'] == "INDEPENDENT_OBLIGATION":
-                    obligations_impact += 6
-                elif obligation['daily_obligation_type'] == "SOCIAL_OUTINGS_OBLIGATION":
-                    obligations_impact += 3
-
-            fatigue_weight = 6
-            stress_weight = 8
-            obligations_weight = 2
-            X.append([fatigue_weight * fatigue_level, stress_weight * stress_level,
-                      obligations_weight * daily_obligations_count, obligations_impact, session_duration])
-            Y.append(session_duration)
-
-        model.fit(X, Y)
-
-        input_data = np.array([[fatigue_weight * fatigue_level, stress_weight * stress_level,
-                               obligations_weight * daily_obligations_count, obligations_impact, session_duration]])
-
-        predicted_duration = model.predict(input_data)
-
-        result = {
-            "predicted_session_duration": f"Gaming session should last for {predicted_duration[0]} hours"
+        responseMessage = {
+            "predicted_session_duration": f"Gaming session should last for {hours} hours and {remaining_minutes} minutes."
         }
 
-        return result, 200
+        return responseMessage, 200
 
 
 # Route registration
@@ -444,5 +398,10 @@ api.add_resource(DailyObligations, '/api/daily-obligations/')
 # Agent routes
 api.add_resource(AgentSession, '/api/agent-session/')
 
+
 if __name__ == "__main__":
+    # Load Trained Agent Data
+    with open('trained-model.sav', 'rb') as F:
+        loaded_model = pickle.load(F)
+
     app.run(debug=True)
