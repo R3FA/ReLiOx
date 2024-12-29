@@ -355,6 +355,7 @@ export class AppComponent implements OnInit {
   // Agent Endpoint
 
   public PrepareAgentData(): void {
+    this.agentPostData = [];
     let sessionLength: number = this.userGamingSessionsData.length;
     let session: GamingSessionGet[] = this.userGamingSessionsData;
 
@@ -372,6 +373,7 @@ export class AppComponent implements OnInit {
         new Agent(
           session[i].startTime,
           session[i].endTime,
+          session[i].sessionDuration,
           session[i].fatigueLevel,
           session[i].stressLevel,
           session[i].dailyObligations.length,

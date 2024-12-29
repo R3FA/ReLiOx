@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, user_patch_args, user_gaming_session_args, agent_fields_array_args, user_fields, gaming_session_fields, daily_obligation_fields, agent_fields
 from flask_restful import Resource, Api, marshal_with, abort
 from datetime import datetime
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.neural_network import MLPRegressor
 import numpy as np
 
 app = Flask(__name__)
@@ -358,7 +358,6 @@ def get_stress_level(stress_string):
 class AgentSession(Resource):
     @marshal_with(agent_fields)
     def post(self):
-        model = RandomForestRegressor(n_estimators=100, random_state=42)
 
         args = agent_fields_array_args.parse_args()
         agent_data = args['data']
@@ -366,8 +365,14 @@ class AgentSession(Resource):
         if not agent_data:
             abort(400, message=f"Agent data for prediction is empty.")
 
+        model = MLPRegressor(hidden_layer_sizes=(
+            10,), max_iter=500, random_state=42)
         X = []
         Y = []
+
+        fatigue_weight = 0
+        stress_weight = 0
+        obligations_weight = 0
 
         for session in agent_data:
             start_time = datetime.strptime(
@@ -376,6 +381,7 @@ class AgentSession(Resource):
                 session.get("end_time"), "%H:%M:%S").time()
             fatigue_level_string = session.get("fatigue_level")
             stress_level_string = session.get("stress_level")
+            session_duration = session.get("session_duration")
             daily_obligations_count = session.get("daily_obligations_count")
             daily_obligations = session.get("daily_obligations", [])
 
@@ -383,45 +389,47 @@ class AgentSession(Resource):
                 abort(400, message=f"Not all agent data for prediction is sent.")
 
             fatigue_level = get_fatigue_level(fatigue_level_string)
+            fatigue_weight += fatigue_level
             stress_level = get_stress_level(stress_level_string)
-
-            session_duration = (datetime.combine(datetime.today(
-            ), end_time) - datetime.combine(datetime.today(), start_time)).seconds / 3600
+            stress_weight += stress_level
 
             obligations_impact = 0
             for obligation in daily_obligations:
                 if obligation['daily_obligation_type'] == "JOB_OBLIGATION":
-                    obligations_impact += 5
+                    obligations_impact += 8
                 elif obligation['daily_obligation_type'] == "SCHOOL_OBLIGATION":
-                    obligations_impact += 4
+                    obligations_impact += 6
                 elif obligation['daily_obligation_type'] == "GYM_OBLIGATION":
-                    obligations_impact += 3
+                    obligations_impact += 4
                 elif obligation['daily_obligation_type'] == "PAPERWORK_OBLIGATION":
-                    obligations_impact += 7
+                    obligations_impact += 10
                 elif obligation['daily_obligation_type'] == "INDEPENDENT_OBLIGATION":
                     obligations_impact += 6
                 elif obligation['daily_obligation_type'] == "SOCIAL_OUTINGS_OBLIGATION":
-                    obligations_impact += 3
+                    obligations_impact += 2
 
-            fatigue_weight = 6
-            stress_weight = 8
-            obligations_weight = 2
-            X.append([fatigue_weight * fatigue_level, stress_weight * stress_level,
-                      obligations_weight * daily_obligations_count, obligations_impact, session_duration])
+            obligations_weight += obligations_impact
+
+            X.append([fatigue_weight, stress_weight,
+                     obligations_weight])
             Y.append(session_duration)
+
+        print(Y)
+        print(fatigue_weight)
+        print(stress_weight)
+        print(obligations_weight)
 
         model.fit(X, Y)
 
-        input_data = np.array([[fatigue_weight * fatigue_level, stress_weight * stress_level,
-                               obligations_weight * daily_obligations_count, obligations_impact, session_duration]])
+        predicted_duration = model.predict(X)
+        hours = int(predicted_duration[0])
+        minutes = int((predicted_duration[0] % 1) * 60)
 
-        predicted_duration = model.predict(input_data)
-
-        result = {
-            "predicted_session_duration": f"Gaming session should last for {predicted_duration[0]} hours"
+        responseMessage = {
+            "predicted_session_duration": f"Gaming session should last for {hours} hours and {minutes} minutes."
         }
 
-        return result, 200
+        return responseMessage, 200
 
 
 # Route registration

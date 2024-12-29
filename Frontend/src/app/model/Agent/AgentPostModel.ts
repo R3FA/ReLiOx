@@ -3,6 +3,7 @@ import { AgentDailyObligationFlaskFormat } from '../DailyObligation/DailyObligat
 export class Agent {
   public start_time: string;
   public end_time: string;
+  public session_duration: number;
   public fatigue_level: string;
   public stress_level: string;
   public daily_obligations_count: number;
@@ -11,6 +12,7 @@ export class Agent {
   constructor(
     start_time: string,
     end_time: string,
+    session_duration: number,
     fatigue_level: string,
     stress_level: string,
     daily_obligations_count: number,
@@ -18,6 +20,7 @@ export class Agent {
   ) {
     this.start_time = start_time;
     this.end_time = end_time;
+    this.session_duration = session_duration;
     this.fatigue_level = fatigue_level;
     this.stress_level = stress_level;
     this.daily_obligations_count = daily_obligations_count;
