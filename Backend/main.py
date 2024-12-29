@@ -64,9 +64,6 @@ class GamingSessionsModel(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     event_date = db.Column(db.Date, nullable=False)
-    start_time = db.Column(db.Time, nullable=False)
-    end_time = db.Column(db.Time, nullable=False)
-    session_duration = db.Column(db.Float, nullable=False)
     fatigue_level = db.Column(db.Enum(FatigueLevel), nullable=False)
     stress_level = db.Column(db.Enum(StressLevel), nullable=False)
 
@@ -238,41 +235,13 @@ class User(Resource):
 # GAMING SESSION Controller
 
 
-def check_gaming_session_overlap(user_id, event_date, new_start_time, new_end_time):
-    overlapping_sessions = GamingSessionsModel.query.filter(
-        GamingSessionsModel.user_id == user_id,
-        GamingSessionsModel.event_date == event_date,
-        or_(
-            and_(
-                GamingSessionsModel.start_time <= new_start_time,
-                GamingSessionsModel.end_time > new_start_time
-            ),
-            and_(
-                GamingSessionsModel.start_time < new_end_time,
-                GamingSessionsModel.end_time >= new_end_time
-            ),
-            and_(
-                GamingSessionsModel.start_time >= new_start_time,
-                GamingSessionsModel.end_time <= new_end_time
-            )
-        )
-    ).all()
-
-    if overlapping_sessions:
-        abort(
-            409,
-            message="The selected time range overlaps with an existing gaming session."
-        )
-
-
 class GamingSessions(Resource):
     # Post
     @marshal_with(gaming_session_fields)
     def post(self, user_id):
         args = user_gaming_session_args.parse_args()
         user_gaming_session = GamingSessionsModel(
-            user_id=args["user_id"], event_date=args["event_date"], start_time=args["start_time"], end_time=args[
-                "end_time"], session_duration=args["session_duration"], fatigue_level=args["fatigue_level"], stress_level=args["stress_level"]
+            user_id=args["user_id"], event_date=args["event_date"], fatigue_level=args["fatigue_level"], stress_level=args["stress_level"]
         )
 
         obligation_enums = args.get("daily_obligations", [])
@@ -290,9 +259,6 @@ class GamingSessions(Resource):
 
         daily_obligations = DailyObligationsModel.query.filter(
             DailyObligationsModel.daily_obligation_type.in_(obligation_enums)).all()
-
-        check_gaming_session_overlap(
-            args["user_id"], args["event_date"], args["start_time"], args["end_time"])
 
         try:
             db.session.add(user_gaming_session)

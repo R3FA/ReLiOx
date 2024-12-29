@@ -77,13 +77,6 @@ def parse_date(date_string: str):
         raise ValueError("Invalid date format. Expected YYYY-MM-DD")
 
 
-def parse_time(time_string: str):
-    try:
-        return datetime.strptime(time_string, '%H:%M').time()
-    except ValueError:
-        raise ValueError("Invalid time format. Expected HH:MM.")
-
-
 def parse_fatigue_level(fatigue_level: FatigueLevel):
     try:
         return FatigueLevel[fatigue_level]
@@ -113,12 +106,6 @@ user_gaming_session_args.add_argument('user_id', type=int, required=True,
                                       help="User ID can't be blank.")
 user_gaming_session_args.add_argument('event_date', type=parse_date,
                                       required=True, help="Event date is required in format YYYY-MM-DD.")
-user_gaming_session_args.add_argument('start_time', type=parse_time,
-                                      required=True, help="Start time is required in format HH:MM.")
-user_gaming_session_args.add_argument('end_time', type=parse_time,
-                                      required=True, help="End time is required in format HH:MM.")
-user_gaming_session_args.add_argument('session_duration', type=float,
-                                      required=True, help="Session Duration can't be blank.")
 user_gaming_session_args.add_argument('fatigue_level', type=parse_fatigue_level,
                                       required=True, help="Invalid or missing fatigue level.")
 user_gaming_session_args.add_argument('stress_level', type=parse_stress_level,
@@ -155,9 +142,6 @@ gaming_session_fields = {
     'id': fields.Integer,
     'user_id': fields.Integer,
     'event_date': fields.String,
-    'start_time': fields.String,
-    'end_time': fields.String,
-    'session_duration': fields.Float,
     'fatigue_level': fields.String,
     'stress_level': fields.String,
     'daily_obligations': fields.List(fields.Nested(daily_obligation_fields))

@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AgentGet, AgentPost } from '../model/Agent/AgentPostModel';
+import { Agent, AgentGet } from '../model/Agent/AgentPostModel';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
@@ -11,7 +11,7 @@ export class AgentService {
 
   constructor(private http: HttpClient) {}
 
-  public Create(userObject: AgentPost): Observable<AgentGet> {
+  public Create(userObject: Agent): Observable<AgentGet> {
     return this.http.post<AgentGet>(
       `${this.baseURL}/agent-session/`,
       userObject

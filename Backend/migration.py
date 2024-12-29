@@ -19,7 +19,7 @@ def generate_daily_obligations_data():
 
 def generate_daily_obligations_for_dataset():
     obligation_types = DailyObligation.list()
-    count = random.randint(1, 6)
+    count = random.randint(1, len(obligation_types))
 
     generated_obligations = []
     for _ in range(count):
