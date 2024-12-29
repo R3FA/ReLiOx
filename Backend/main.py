@@ -7,15 +7,36 @@ from models import DailyObligation, FatigueLevel, StressLevel, user_post_args, u
 from flask_restful import Resource, Api, marshal_with, abort
 from datetime import datetime
 from sklearn.neural_network import MLPRegressor
-import numpy as np
+import pickle
+import math
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///reliox_database.db'
 db = SQLAlchemy(app)
 api = Api(app)
 CORS(app)
+loaded_model: MLPRegressor
 
 # Database Models
+
+# Agent Trained Database Table
+
+
+class AgentTrainedDataModel(db.Model):
+    __tablename__ = 'agent_trained_data'
+
+    id = db.Column(db.Integer, primary_key=True)
+    fatigue_impact = db.Column(db.Integer, nullable=False)
+    stress_impact = db.Column(db.Integer, nullable=False)
+    daily_obligations = db.Column(db.Integer, nullable=False)
+    session_duration = db.Column(db.Integer, nullable=False)
+
+    def __init__(self, fatigue: int, stress: int, daily_obligations: int, session_duration: int):
+        self.fatigue_impact = fatigue
+        self.stress_impact = stress
+        self.daily_obligations = daily_obligations
+        self.session_duration = session_duration
+
 
 # User DB Model
 
@@ -68,6 +89,9 @@ class DailyObligationsModel(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     daily_obligation_type = db.Column(db.Enum(DailyObligation), nullable=False)
+
+    def __init__(self, daily_obligation_type: str):
+        self.daily_obligation_type = daily_obligation_type
 
     gaming_sessions = db.relationship(
         'GamingSessionsModel',
@@ -355,78 +379,34 @@ def get_stress_level(stress_string):
         return abort(404, message=f"Unknown Stress Level: {stress_string}")
 
 
+def get_daily_obligation(daily_obligation: DailyObligation):
+    try:
+        return DailyObligation[daily_obligation]
+    except KeyError:
+        raise ValueError(
+            f"Invalid daily obligation: '{daily_obligation}'. Must be one of {[level.name for level in DailyObligation]}")
+
+
 class AgentSession(Resource):
     @marshal_with(agent_fields)
     def post(self):
-
         args = agent_fields_array_args.parse_args()
-        agent_data = args['data']
 
-        if not agent_data:
-            abort(400, message=f"Agent data for prediction is empty.")
+        fatigue_level = FatigueLevel(args['fatigue_level']).value
+        stress_level = StressLevel(args['stress_level']).value
+        sum_of_obligations = 0
 
-        model = MLPRegressor(hidden_layer_sizes=(
-            10,), max_iter=500, random_state=42)
-        X = []
-        Y = []
+        for obligation in args['daily_obligations']:
+            sum_of_obligations += DailyObligation(obligation).value
 
-        fatigue_weight = 0
-        stress_weight = 0
-        obligations_weight = 0
+        predicted_duration = loaded_model.predict([[
+            fatigue_level, stress_level, sum_of_obligations]])
 
-        for session in agent_data:
-            start_time = datetime.strptime(
-                session.get("start_time"), "%H:%M:%S").time()
-            end_time = datetime.strptime(
-                session.get("end_time"), "%H:%M:%S").time()
-            fatigue_level_string = session.get("fatigue_level")
-            stress_level_string = session.get("stress_level")
-            session_duration = session.get("session_duration")
-            daily_obligations_count = session.get("daily_obligations_count")
-            daily_obligations = session.get("daily_obligations", [])
-
-            if not all([start_time, end_time, fatigue_level_string, stress_level_string, daily_obligations_count, daily_obligations]):
-                abort(400, message=f"Not all agent data for prediction is sent.")
-
-            fatigue_level = get_fatigue_level(fatigue_level_string)
-            fatigue_weight += fatigue_level
-            stress_level = get_stress_level(stress_level_string)
-            stress_weight += stress_level
-
-            obligations_impact = 0
-            for obligation in daily_obligations:
-                if obligation['daily_obligation_type'] == "JOB_OBLIGATION":
-                    obligations_impact += 8
-                elif obligation['daily_obligation_type'] == "SCHOOL_OBLIGATION":
-                    obligations_impact += 6
-                elif obligation['daily_obligation_type'] == "GYM_OBLIGATION":
-                    obligations_impact += 4
-                elif obligation['daily_obligation_type'] == "PAPERWORK_OBLIGATION":
-                    obligations_impact += 10
-                elif obligation['daily_obligation_type'] == "INDEPENDENT_OBLIGATION":
-                    obligations_impact += 6
-                elif obligation['daily_obligation_type'] == "SOCIAL_OUTINGS_OBLIGATION":
-                    obligations_impact += 2
-
-            obligations_weight += obligations_impact
-
-            X.append([fatigue_weight, stress_weight,
-                     obligations_weight])
-            Y.append(session_duration)
-
-        print(Y)
-        print(fatigue_weight)
-        print(stress_weight)
-        print(obligations_weight)
-
-        model.fit(X, Y)
-
-        predicted_duration = model.predict(X)
-        hours = int(predicted_duration[0])
-        minutes = int((predicted_duration[0] % 1) * 60)
+        hours = math.floor(predicted_duration[0] / 60)
+        remaining_minutes = round(predicted_duration[0] % 60)
 
         responseMessage = {
-            "predicted_session_duration": f"Gaming session should last for {hours} hours and {minutes} minutes."
+            "predicted_session_duration": f"Gaming session should last for {hours} hours and {remaining_minutes} minutes."
         }
 
         return responseMessage, 200
@@ -452,5 +432,10 @@ api.add_resource(DailyObligations, '/api/daily-obligations/')
 # Agent routes
 api.add_resource(AgentSession, '/api/agent-session/')
 
+
 if __name__ == "__main__":
+    # Load Trained Agent Data
+    with open('trained-model.sav', 'rb') as F:
+        loaded_model = pickle.load(F)
+
     app.run(debug=True)
