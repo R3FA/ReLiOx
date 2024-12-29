@@ -12,9 +12,9 @@ def generate_daily_obligations_data():
             db.session.add(DailyObligationsModel(obligation.name))
         db.session.commit()
         print(
-            "'daily_obligations' table has been populated with default daily obligations.")
+            "The 'daily_obligations' table has been successfully populated with default obligations.")
     else:
-        print("'daily_obligations' table has already been populated with default data.")
+        print("The 'daily_obligations' table is already populated with default entries.")
 
 
 def generate_daily_obligations_for_dataset():
@@ -58,7 +58,7 @@ def generate_dataset(num_samples):
         data.append(AgentData(fatigue, stress, sum(
             daily_obligations), session_duration))
 
-    print("Starting to create 300.000 datasets for an agent. Please wait!")
+    print("Initiating the generation of 300,000 datasets for the agent. Please wait!")
 
     if db.session.query(AgentTrainedDataModel).count() == 0:
         for data_set in data:
@@ -66,16 +66,16 @@ def generate_dataset(num_samples):
                            data_set.daily_obligations, data_set.session_duration))
         db.session.commit()
         print(
-            "'agent_trained_data' table has been populated with trained data for an agent")
+            "The 'agent_trained_data' table has been populated with the generated training data.")
     else:
         print(
-            "'daily_obligations' table has already been populated with agent trained data.")
+            "The 'agent_trained_data' table is already populated with the agent's training data.")
 
     return data
 
 
 def train_model(data: list[AgentData]):
-    print('Training Agent on 300.000 Datasets has started. Please wait!')
+    print('Training the agent on 300,000 datasets has begun. Please wait!')
 
     model = MLPRegressor(hidden_layer_sizes=(
         10,), max_iter=500, random_state=42)
@@ -95,18 +95,18 @@ def train_model(data: list[AgentData]):
     with open('trained-model.sav', 'wb') as F:
         pickle.dump(model, F)
 
-    print("Agent has been successfully trained and saved in a file named: trained-model.sav")
+    print("The agent has been successfully trained and saved to the file: trained-model.sav")
 
 
 with app.app_context():
-    # Creating all tables
+    # Initialize all database tables
     db.create_all()
 
-    # # Populating daily_obligations table with default data.
+    # Populate the daily_obligations table with default entries
     generate_daily_obligations_data()
 
-    # Creating Agent Dataset
+    # Generate a dataset of 300,000 records for the agent
     generated_data = generate_dataset(300000)
 
-    # Training agent model
+    # Train the agent model using the generated dataset
     train_model(generated_data)
