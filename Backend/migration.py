@@ -37,12 +37,12 @@ def calculate_session_duration(fatigue_level, stress_level, daily_obligations):
 
     for obligation in daily_obligations:
         obligations_impact += (obligation / 10)
-    obligations_impact *= 20
+    obligations_impact *= 10
 
     session_duration = max_session_duration - \
         (fatigue_impact + stress_impact + obligations_impact)
 
-    return max(15, min(session_duration, 180))
+    return max(15, min(session_duration, 240))
 
 
 def generate_dataset(num_samples):
