@@ -336,7 +336,6 @@ export class AppComponent implements OnInit {
       )
     );
 
-    console.log(agentPostData);
     this.PredictSessionDuration(agentPostData);
   }
 

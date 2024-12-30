@@ -48,6 +48,8 @@ def calculate_session_duration(fatigue_level, stress_level, daily_obligations):
 def generate_dataset(num_samples):
     data: list[AgentData] = []
 
+    print("Initiating the generation of 300,000 datasets for the agent. Please wait!")
+
     for _ in range(num_samples):
         fatigue = random.choice(FatigueLevel.list())
         stress = random.choice(StressLevel.list())
@@ -57,8 +59,6 @@ def generate_dataset(num_samples):
 
         data.append(AgentData(fatigue, stress, sum(
             daily_obligations), session_duration))
-
-    print("Initiating the generation of 300,000 datasets for the agent. Please wait!")
 
     if db.session.query(AgentTrainedDataModel).count() == 0:
         for data_set in data:
