@@ -17,8 +17,54 @@ def generate_daily_obligations_data():
         print("The 'daily_obligations' table is already populated with default entries.")
 
 
+def selected_session_impact(enum_name):
+    match enum_name:
+        # Daily Obligations
+        case 'JOB_OBLIGATION':
+            return 8
+        case 'SCHOOL_OBLIGATION':
+            return 6
+        case 'GYM_OBLIGATION':
+            return 4
+        case 'PAPERWORK_OBLIGATION':
+            return 6
+        case 'INDEPENDENT_OBLIGATION':
+            return 5
+        case 'SOCIAL_OUTINGS_OBLIGATION':
+            return 2
+
+        # Fatigue Levels
+        case 'VERY_LOW_FATIGUE':
+            return 1
+        case 'LOW_FATIGUE':
+            return 3
+        case 'MODERATE_FATIGUE':
+            return 5
+        case 'HIGH_FATIGUE':
+            return 8
+        case 'VERY_HIGH_FATIGUE':
+            return 10
+
+        # Stress Levels
+        case 'VERY_LOW_STRESS':
+            return 1
+        case 'LOW_STRESS':
+            return 3
+        case 'MODERATE_STRESS':
+            return 5
+        case 'HIGH_STRESS':
+            return 8
+        case 'VERY_HIGH_STRESS':
+            return 10
+
+
 def generate_daily_obligations_for_dataset():
-    obligation_types = DailyObligation.list()
+    obligation_types_name = DailyObligation.list()
+
+    obligation_types = []
+    for obligation_type_name in obligation_types_name:
+        obligation_types.append(selected_session_impact(obligation_type_name))
+
     count = random.randint(1, len(obligation_types))
 
     generated_obligations = []
@@ -56,8 +102,12 @@ def generate_dataset(num_samples):
         print("Initiating the generation of 300,000 datasets for the agent. Please wait!")
 
         for _ in range(num_samples):
-            fatigue = random.choice(FatigueLevel.list())
-            stress = random.choice(StressLevel.list())
+            fatigue_name = random.choice(FatigueLevel.list())
+            stress_name = random.choice(StressLevel.list())
+
+            fatigue = selected_session_impact(fatigue_name)
+            stress = selected_session_impact(stress_name)
+
             daily_obligations = generate_daily_obligations_for_dataset()
             session_duration = calculate_session_duration(
                 fatigue, stress, daily_obligations)
