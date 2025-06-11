@@ -1,3 +1,6 @@
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import pandas as pd
+import numpy as np
 from main import app, db, DailyObligationsModel, AgentTrainedDataModel
 from models import DailyObligation, StressLevel, FatigueLevel, AgentData
 from sklearn.tree import DecisionTreeRegressor
@@ -153,10 +156,29 @@ def train_model(data: list[AgentData]):
 
         model.fit(X_train, Y_train)
 
+        Y_pred = model.predict(X_test)
+
+        # Model performance metrics calculation
+        mse = mean_squared_error(Y_test, Y_pred)
+        rmse = np.sqrt(mse)
+        mae = mean_absolute_error(Y_test, Y_pred)
+        r2 = r2_score(Y_test, Y_pred)
+
+        metrics_report = {
+            'Metric': ['Mean Squared Error', 'Root Mean Squared Error', 'Mean Absolute Error', 'R² Score'],
+            'Value': [mse, rmse, mae, r2]
+        }
+
+        print("\n" + "="*50)
+        print("MODEL PERFORMANCE METRICS")
+        print("="*50)
+        print(pd.DataFrame(metrics_report).to_string(index=False))
+        print("="*50)
+
         with open('trained-model.sav', 'wb') as F:
             pickle.dump(model, F)
 
-        print("The agent has been successfully trained and saved to the file: trained-model.sav")
+        print("\nThe agent has been successfully trained and saved to the file named: trained-model.sav")
     else:
         print("Agent training is not required as the dataset is already populated and the agent has been previously trained.")
 
