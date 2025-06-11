@@ -24,6 +24,7 @@ MarkupSafe==3.0.2
 more-itertools==10.7.0
 numpy==2.3.0
 packaging==25.0
+pandas==2.3.0
 pip-chill==1.0.3
 platformdirs==4.3.8
 python-dateutil==2.9.0.post0
