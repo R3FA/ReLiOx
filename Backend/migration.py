@@ -1,6 +1,6 @@
 from main import app, db, DailyObligationsModel, AgentTrainedDataModel
 from models import DailyObligation, StressLevel, FatigueLevel, AgentData
-from sklearn.neural_network import MLPRegressor
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.model_selection import train_test_split
 import random
 import pickle
@@ -76,19 +76,25 @@ def generate_daily_obligations_for_dataset():
 
 def calculate_session_duration(fatigue_level, stress_level, daily_obligations):
     max_session_duration = 240
+    min_session_duration = 60
+    total_session_impact_threshold = max_session_duration - min_session_duration
 
-    fatigue_impact = (fatigue_level / 10) * 90
-    stress_impact = (stress_level / 10) * 90
+    fatigue_impact = (fatigue_level / 10) * 120
+    stress_impact = (stress_level / 10) * 120
     obligations_impact = 0
 
     for obligation in daily_obligations:
         obligations_impact += (obligation / 10)
-    obligations_impact *= 10
+    obligations_impact *= 45
 
-    session_duration = max_session_duration - \
-        (fatigue_impact + stress_impact + obligations_impact)
+    total_session_impact = fatigue_impact + stress_impact + obligations_impact
 
-    return max(15, min(session_duration, 240))
+    if total_session_impact >= total_session_impact_threshold:
+        return 0
+
+    session_duration = max_session_duration - total_session_impact
+
+    return max(min_session_duration, min(session_duration, max_session_duration))
 
 
 def generate_dataset(num_samples):
@@ -129,8 +135,11 @@ def train_model(data: list[AgentData]):
     if len(data) != 0:
         print('Training the agent on 300,000 datasets has begun. Please wait!')
 
-        model = MLPRegressor(hidden_layer_sizes=(
-            10,), max_iter=500, random_state=42)
+        model = DecisionTreeRegressor(
+            max_depth=6,
+            min_samples_split=20,
+            min_samples_leaf=10,
+            random_state=42)
         X = []
         Y = []
 
@@ -140,7 +149,7 @@ def train_model(data: list[AgentData]):
             Y.append(data_set.session_duration)
 
         X_train, X_test, Y_train, Y_test = train_test_split(
-            X, Y, test_size=0.2, random_state=42)
+            X, Y, test_size=0.5, random_state=42)
 
         model.fit(X_train, Y_train)
 
