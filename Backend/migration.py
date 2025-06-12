@@ -1,12 +1,12 @@
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import pandas as pd
 import numpy as np
-from main import app, db, DailyObligationsModel, AgentTrainedDataModel
-from models import DailyObligation, StressLevel, FatigueLevel, AgentData
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.model_selection import train_test_split
 import random
 import pickle
+from main import app, db, DailyObligationsModel, AgentTrainedDataModel
+from models import DailyObligation, StressLevel, FatigueLevel, AgentData
+from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection import train_test_split
 
 
 def generate_daily_obligations_data():
@@ -138,10 +138,9 @@ def train_model(data: list[AgentData]):
     if len(data) != 0:
         print('Training the agent on 300,000 datasets has begun. Please wait!')
 
-        model = DecisionTreeRegressor(
-            max_depth=6,
-            min_samples_split=20,
-            min_samples_leaf=10,
+        model = MLPRegressor(
+            hidden_layer_sizes=(10,),
+            max_iter=2500,
             random_state=42)
         X = []
         Y = []
