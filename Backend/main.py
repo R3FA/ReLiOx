@@ -370,9 +370,14 @@ class AgentSession(Resource):
         hours = math.floor(predicted_duration[0] / 60)
         remaining_minutes = round(predicted_duration[0] % 60)
 
-        responseMessage = {
-            "predicted_session_duration": f"Gaming session should last for {hours} hours and {remaining_minutes} minutes."
-        }
+        if predicted_duration >= 60:
+            responseMessage = {
+                "predicted_session_duration": f"Gaming session should last for {hours} hours and {remaining_minutes} minutes."
+            }
+        else:
+            responseMessage = {
+                "predicted_session_duration": "You shouldn't play games at all today. Focus on rest and recovery."
+            }
 
         return responseMessage, 200
 

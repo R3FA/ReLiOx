@@ -7,33 +7,33 @@ from datetime import datetime
 
 class ExtendedEnum(Enum):
     @classmethod
-    def list(cls):
-        return list(map(lambda c: c.value, cls))
+    def list(selected_enum_class):
+        return list(map(lambda selected_enum_class_value: selected_enum_class_value.name, selected_enum_class))
 
 
 class DailyObligation(ExtendedEnum):
-    JOB_OBLIGATION = 8
-    SCHOOL_OBLIGATION = 6
-    GYM_OBLIGATION = 4
-    PAPERWORK_OBLIGATION = 10
-    INDEPENDENT_OBLIGATION = 6
-    SOCIAL_OUTINGS_OBLIGATION = 2
+    JOB_OBLIGATION = 1
+    SCHOOL_OBLIGATION = 2
+    GYM_OBLIGATION = 3
+    PAPERWORK_OBLIGATION = 4
+    INDEPENDENT_OBLIGATION = 5
+    SOCIAL_OUTINGS_OBLIGATION = 6
 
 
 class FatigueLevel(ExtendedEnum):
     VERY_LOW_FATIGUE = 1
-    LOW_FATIGUE = 3
-    MODERATE_FATIGUE = 5
-    HIGH_FATIGUE = 8
-    VERY_HIGH_FATIGUE = 10
+    LOW_FATIGUE = 2
+    MODERATE_FATIGUE = 3
+    HIGH_FATIGUE = 4
+    VERY_HIGH_FATIGUE = 5
 
 
 class StressLevel(ExtendedEnum):
     VERY_LOW_STRESS = 1
-    LOW_STRESS = 3
-    MODERATE_STRESS = 5
-    HIGH_STRESS = 8
-    VERY_HIGH_STRESS = 10
+    LOW_STRESS = 2
+    MODERATE_STRESS = 3
+    HIGH_STRESS = 4
+    VERY_HIGH_STRESS = 5
 
 
 class AgentData:
@@ -50,8 +50,6 @@ class AgentData:
 
 
 # REST Arguments
-
-
 # User arguments for POST
 user_post_args = reqparse.RequestParser()
 user_post_args.add_argument('nick_name', type=str, required=True,
@@ -123,7 +121,6 @@ agent_fields_array_args.add_argument('daily_obligations', action='append', type=
                                      required=True, help="Invalid or missing daily obligation.")
 
 # Response Types (JSON format)
-
 # User response
 user_fields = {
     'id': fields.Integer,

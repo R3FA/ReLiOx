@@ -1,9 +1,12 @@
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
+import pandas as pd
+import numpy as np
+import random
+import pickle
 from main import app, db, DailyObligationsModel, AgentTrainedDataModel
 from models import DailyObligation, StressLevel, FatigueLevel, AgentData
 from sklearn.neural_network import MLPRegressor
 from sklearn.model_selection import train_test_split
-import random
-import pickle
 
 
 def generate_daily_obligations_data():
@@ -17,8 +20,54 @@ def generate_daily_obligations_data():
         print("The 'daily_obligations' table is already populated with default entries.")
 
 
+def selected_session_impact(enum_name):
+    match enum_name:
+        # Daily Obligations
+        case 'JOB_OBLIGATION':
+            return 8
+        case 'SCHOOL_OBLIGATION':
+            return 6
+        case 'GYM_OBLIGATION':
+            return 4
+        case 'PAPERWORK_OBLIGATION':
+            return 6
+        case 'INDEPENDENT_OBLIGATION':
+            return 5
+        case 'SOCIAL_OUTINGS_OBLIGATION':
+            return 2
+
+        # Fatigue Levels
+        case 'VERY_LOW_FATIGUE':
+            return 1
+        case 'LOW_FATIGUE':
+            return 3
+        case 'MODERATE_FATIGUE':
+            return 5
+        case 'HIGH_FATIGUE':
+            return 8
+        case 'VERY_HIGH_FATIGUE':
+            return 10
+
+        # Stress Levels
+        case 'VERY_LOW_STRESS':
+            return 1
+        case 'LOW_STRESS':
+            return 3
+        case 'MODERATE_STRESS':
+            return 5
+        case 'HIGH_STRESS':
+            return 8
+        case 'VERY_HIGH_STRESS':
+            return 10
+
+
 def generate_daily_obligations_for_dataset():
-    obligation_types = DailyObligation.list()
+    obligation_types_name = DailyObligation.list()
+
+    obligation_types = []
+    for obligation_type_name in obligation_types_name:
+        obligation_types.append(selected_session_impact(obligation_type_name))
+
     count = random.randint(1, len(obligation_types))
 
     generated_obligations = []
@@ -30,19 +79,25 @@ def generate_daily_obligations_for_dataset():
 
 def calculate_session_duration(fatigue_level, stress_level, daily_obligations):
     max_session_duration = 240
+    min_session_duration = 60
+    total_session_impact_threshold = max_session_duration - min_session_duration
 
-    fatigue_impact = (fatigue_level / 10) * 90
-    stress_impact = (stress_level / 10) * 90
+    fatigue_impact = (fatigue_level / 10) * 120
+    stress_impact = (stress_level / 10) * 120
     obligations_impact = 0
 
     for obligation in daily_obligations:
         obligations_impact += (obligation / 10)
-    obligations_impact *= 10
+    obligations_impact *= 45
 
-    session_duration = max_session_duration - \
-        (fatigue_impact + stress_impact + obligations_impact)
+    total_session_impact = fatigue_impact + stress_impact + obligations_impact
 
-    return max(15, min(session_duration, 240))
+    if total_session_impact >= total_session_impact_threshold:
+        return 0
+
+    session_duration = max_session_duration - total_session_impact
+
+    return max(min_session_duration, min(session_duration, max_session_duration))
 
 
 def generate_dataset(num_samples):
@@ -56,8 +111,12 @@ def generate_dataset(num_samples):
         print("Initiating the generation of 300,000 datasets for the agent. Please wait!")
 
         for _ in range(num_samples):
-            fatigue = random.choice(FatigueLevel.list())
-            stress = random.choice(StressLevel.list())
+            fatigue_name = random.choice(FatigueLevel.list())
+            stress_name = random.choice(StressLevel.list())
+
+            fatigue = selected_session_impact(fatigue_name)
+            stress = selected_session_impact(stress_name)
+
             daily_obligations = generate_daily_obligations_for_dataset()
             session_duration = calculate_session_duration(
                 fatigue, stress, daily_obligations)
@@ -79,8 +138,10 @@ def train_model(data: list[AgentData]):
     if len(data) != 0:
         print('Training the agent on 300,000 datasets has begun. Please wait!')
 
-        model = MLPRegressor(hidden_layer_sizes=(
-            10,), max_iter=500, random_state=42)
+        model = MLPRegressor(
+            hidden_layer_sizes=(10,),
+            max_iter=2500,
+            random_state=42)
         X = []
         Y = []
 
@@ -90,14 +151,33 @@ def train_model(data: list[AgentData]):
             Y.append(data_set.session_duration)
 
         X_train, X_test, Y_train, Y_test = train_test_split(
-            X, Y, test_size=0.2, random_state=42)
+            X, Y, test_size=0.5, random_state=42)
 
         model.fit(X_train, Y_train)
+
+        Y_pred = model.predict(X_test)
+
+        # Model performance metrics calculation
+        mse = mean_squared_error(Y_test, Y_pred)
+        rmse = np.sqrt(mse)
+        mae = mean_absolute_error(Y_test, Y_pred)
+        r2 = r2_score(Y_test, Y_pred)
+
+        metrics_report = {
+            'Metric': ['Mean Squared Error', 'Root Mean Squared Error', 'Mean Absolute Error', 'R² Score'],
+            'Value': [mse, rmse, mae, r2]
+        }
+
+        print("\n" + "="*50)
+        print("MODEL PERFORMANCE METRICS")
+        print("="*50)
+        print(pd.DataFrame(metrics_report).to_string(index=False))
+        print("="*50)
 
         with open('trained-model.sav', 'wb') as F:
             pickle.dump(model, F)
 
-        print("The agent has been successfully trained and saved to the file: trained-model.sav")
+        print("\nThe agent has been successfully trained and saved to the file named: trained-model.sav")
     else:
         print("Agent training is not required as the dataset is already populated and the agent has been previously trained.")
 
